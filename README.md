@@ -4,4 +4,4 @@ Ders sırasında anlatılan konularla ilişkili haftalık notların yer aldığ�
 
 ## Java Patterns and Practices
 
-- [Hafta 00](java-week1.md)
+- [Hafta 01](java-week1.md)

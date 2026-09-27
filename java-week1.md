@@ -6,8 +6,6 @@ Bu derste aşağıdaki çizim üzerinde duruldu ve proje geliştirme süreçleri
 
 ![Gitflow Strategy](./images/gitflow_strategy.png)
 
-todo@buraksenyurt Grafik yenilenmeli
-
 Senaryoya göre ürüne eklenmek istenen iki geliştirme *(feature)* var.
 
 |**Branch**|**Work Item**|
