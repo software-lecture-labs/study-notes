@@ -365,6 +365,167 @@ Bu sınıfın neler vaat ettiğini özetlemeye çalışalım.
 - lines metodu içinse ayrı bir durum söz konusudur. Dikkat edileceği üzere Order nesnesinin sahip olduğu listeyi döndürmek yerine onun bir kopyasını döndürür. Bu sayede dışarıdan yapılan değişiklikler Order nesnesinin iç durumunu etkilemez. *(Referans türlerini düşünün)*
 - Order nesnesinin eşitlik ve hashCode mantığı, sadece orderId alanına dayanır. Bu sayede aynı sipariş kimliğine sahip iki nesne eşit kabul edilir, diğer alanlar dikkate alınmaz. Bu son derece normaldir çünkü bir siparişin kimliği onun tekil tanımlayıcısıdır. *(PostalAddress record gibi değer nesnelerinden farklı bir mantık izler)*
 
+---
+
+## Anemic Tasarımlar
+
+Bu hafta ele aldığımız sipariş nesnelerinin zengin domain tasarımı ile neyi çözdüğünü daha iyi anlamak için anemik varyasyonları ile karşılaştırma yapabiliriz. Bu amaçlar AnemicOrder ve AnemicOrderLine isimli aşağıdaki sınıfları yazdığımızı düşünelim.
+
+```java
+public class AnemicOrderLine {
+
+    private int productId;
+    private double unitPrice;
+    private int quantity;
+    private double discount;
+
+    public int getProductId() { return productId; }
+    public void setProductId(int productId) { this.productId = productId; }
+
+    public double getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
+
+    public int getQuantity() { return quantity; }
+    public void setQuantity(int quantity) { this.quantity = quantity; }
+
+    public double getDiscount() { return discount; }
+    public void setDiscount(double discount) { this.discount = discount; }
+}
+```
+
+AnemicOrderLine görüldüğü üzere sadece veri taşıyan, standart getter ve setter'ları olan bir sınıf. Üzerinde hiçbir domain kuralı barındırmıyor. Benzer şekilde AnemicOrder sınıfını da aşağıdaki gibi düşünebiliriz.
+
+```java
+public class AnemicOrder {
+
+    private int orderId;
+    private String customerId;
+    private LocalDate orderDate;
+    private List<AnemicOrderLine> lines = new ArrayList<>();
+    private String status;
+    private LocalDate shippedDate;
+
+    public int getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
+
+    public LocalDate getOrderDate() {
+        return orderDate;
+    }
+
+    public void setOrderDate(LocalDate orderDate) {
+        this.orderDate = orderDate;
+    }
+
+    public List<AnemicOrderLine> getLines() {
+        return lines;
+    }
+
+    public void setLines(List<AnemicOrderLine> lines) {
+        this.lines = lines;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDate getShippedDate() {
+        return shippedDate;
+    }
+
+    public void setShippedDate(LocalDate shippedDate) {
+        this.shippedDate = shippedDate;
+    }
+}
+```
+
+AnemicOrder sınıfı da sadece veri taşıyan, standart getter ve setter metotları içeren bir yapıda. Bir siparişin kalemleri lines isimli ArrayList üzerinden sağlanıyor. Kurguya birde sipariş kalemlerinin toplam tutarını hesaplayan aşağıdaki OrderCalculator bileşenini ekleyelim.
+
+```java
+public final class OrderCalculator {
+
+    public double total(AnemicOrder order) {
+        double sum = 0;
+        for (AnemicOrderLine line : order.getLines()) {
+            sum += line.getUnitPrice() * line.getQuantity() * (1 - line.getDiscount());
+        }
+        return sum;
+    }
+}
+```
+
+Bu tasarımı göz önüne alarak hem anemik hem de zengin modele bazı sorular sorabiliriz. Aşağıdaki tabloda bu soruları bulabilirsiniz.
+
+| **Soru** | **Anemic Model** | **Rich Model** |
+| --- | --- | --- |
+| Gönderilmiş bir siparişe sonradan satır ekleyebilir miyiz? | Evet, getter ve setter'lar sayesinde ekleyebiliriz. | Hayır, zengin modelde sipariş gönderildiyse satır eklenemez IllegalStateException fırlatılır. |
+| Sipariş toplamlarında kuruş farkı çıkar mı? | Evet, zira anemik modelde double kullanılıyor ve her satır ayrı ayrı hesaplanıyor. | Hayır, zengin modelde BigDecimal kullanılıyor ve toplam tek bir yerde hesaplanıyor. |
+| Boş bir sipariş onaylanabilir mi? | Evet, anemik modelde herhangi bir kısıtlama yoktur. | Hayır, zengin modelde boş sipariş onaylanamaz, IllegalStateException fırlatılır. |
+| Toplam hesabı iki farklı yerde farklı yazılabilir mi? | Evet, anemik modelde toplam hesaplama her yerde ayrı ayrı yapılabilir ve double kullanımı nedeniyle küçük farklar oluşabilir. | Hayır, zengin modelde toplam tek bir yerde hesaplanır ve BigDecimal kullanıldığı için tutarsızlık oluşmaz. |
+
+Sizde bunlara benzer soruları çoğaltabilir ve neden anemik modelden uzak durmamız gerektiğini tartışabilirsiniz.
+
+Her iki model arasındaki farkları görmek için aşağıdaki deneysel kodun çıktılarına da bakabiliriz.
+
+```java
+public class BusinessObjects {
+
+    public static void main(String[] args) {
+        Order rich = new Order(10248, "VINET", LocalDate.of(1996, 7, 4));
+        AnemicOrder anemic = new AnemicOrder();
+        for (int i = 0; i < PRODUCTS.length; i++) {
+            rich.addLine(PRODUCTS[i], Money.tl(PRICES[i]), QUANTITIES[i], new BigDecimal(DISCOUNTS[i]));
+            AnemicOrderLine line = new AnemicOrderLine();
+            line.setProductId(PRODUCTS[i]);
+            line.setUnitPrice(Double.parseDouble(PRICES[i]));
+            line.setQuantity(QUANTITIES[i]);
+            line.setDiscount(Double.parseDouble(DISCOUNTS[i]));
+            anemic.getLines().add(line);
+        }
+        System.out.println("anemic total : " + new OrderCalculator().total(anemic));
+        System.out.println("rich   total : " + rich.total());
+    }
+    private static final int[] PRODUCTS = {11, 42, 72, 28, 39};
+    private static final String[] PRICES = {"14.00", "9.80", "34.80", "45.60", "18.00"};
+    private static final int[] QUANTITIES = {12, 10, 5, 9, 21};
+    private static final String[] DISCOUNTS = {"0.05", "0.15", "0.10", "0.25", "0.05"};
+}
+```
+
+![alt text](./images/week_03_03.png)
+
+---
+
+## Değer Nesnesi mi Entity mi?
+
+Şu ana kadar ki tasarımlarımızda Money türünü *(veya Address)* değer nesnesi *(value object)* olarak, Order'ı ise entity olarak kabul ettik. Bir kimliği olduğu ve bu ID gibi benzersiz bir özellikle sağlandığı için Order bir entity'dir. Değer nesneleri ise kimlikten bağımsız olarak sahip oldukları değerlerle tanımlanırlar. Her iki kavramı aşağıdaki tablo ile kıyaslamamız mümkün.
+
+| | **Değer Nesnesi *(Value Object)*** | **Entity** |
+| --- | --- | --- |
+| Eşitlik | Tüm alanlar hesaba katılır | Identity alanı vardır ve bu alan üzerinden karşılaştırılır |
+| Yaşam döngüsü | Kısa ömürlüdür yani değiştirildiğinde yenisi doğar | Uzun ömürlüdür zaman içerisinde değişir |
+| Şu ana kadarki örneklerimiz | Money, PostalAddress, OrderLine | Order, *(İlerleyen haftalarda Customer, Product)* |
+
+> Dikkat! Henüz Java Persistence API (JPA) ile ilgili konulara girmedik. Zira entity kimliği açısından bakıldığında henüz veritabanına yazılmamış iki Entity nesnesi eşit kabul edilebilir. Şimdilik bunu göz ardı ediyoruz.
+
+---
+
 ## Sorular
 
 Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz. Bu sorular tasarladığımız Money, Order, OrderLine gibi nesnelerin ne kadar doğru ve etkili tasarlandığını sorgulamamıza yardımcı olacaktır.

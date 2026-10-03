@@ -287,6 +287,8 @@ public class BusinessDesign {
 
 Bir sonraki konuda iş nesnelerinin farklı türevlerini incelemeye devam edeceğiz. Daha farklı iş kuralları içeren zengin domain nesneler, record'lar ve zaman kalırsa aggregate root'lar üzerinde duracağız.
 
+---
+
 ## Sorular
 
 Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz.

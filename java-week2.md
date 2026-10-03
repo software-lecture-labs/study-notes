@@ -529,6 +529,8 @@ MethodHandle handle = ((CallSite) ObjectMethods.bootstrap(
 
 > Bu ispat üzerine biraz daha derinlemesine çalışmak ve kantıları somutlaştırmak gerekiyor.
 
+---
+
 ## Sorular
 
 Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz.
