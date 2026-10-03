@@ -16,7 +16,7 @@ Hafif bir **gitflow** stratejisi izleyebiliriz.
 
 ## Temel Git Komutları
 
-Aşağıda bazı temel git komutlarının ele alındığı örnek bir senaryo yer almaktadır. Bu senaryo sonucunda aşağıdaki gibi bir kurgu oluşacaktır. Adımları denerken en sonda aşağıdaki terminal komutunu çalıştırarak nelerin değiştiğini kolayca görebiliriz.
+Aşağıda bazı temel git komutlarının ele alındığı örnek bir senaryo yer almaktadır. Adımları denerken en sonda aşağıdaki terminal komutunu çalıştırarak nelerin değiştiğini kolayca görebiliriz.
 
 ```bash
 git log --oneline --graph --all
@@ -44,7 +44,7 @@ git log --oneline --graph --all
 
 Şu ana kadar yaptıklarımızın karşılığında aşağıdakine benzer bir çıktı elde etmeliyiz.
 
-![git-hello-00](./images/git_hello_00.png)
+![git-hello-00](./images/week_02_00.png)
 
 ### Development Branch'ini Oluşturalım
 
@@ -80,7 +80,7 @@ git branch -d feature/login
 git log --oneline --graph --all
 ```
 
-![git-hello-01](./images/git_hello_01.png)
+![git-hello-01](./images/week_02_01.png)
 
 ### Bir Release Hazırlanması
 
@@ -108,7 +108,7 @@ git branch -d release/1.0.0
 git log --oneline --graph --all
 ```
 
-![git-hello-02](./images/git_hello_02.png)
+![git-hello-02](./images/week_02_02.png)
 
 ### Bir Acil Düzeltme Geldi *(Hotfix)*
 
@@ -134,7 +134,7 @@ git branch -d hotfix/1.0.1
 git log --oneline --graph --all
 ```
 
-![git-hello-03](./images/git_hello_03.png)
+![git-hello-03](./images/week_02_03.png)
 
 ### Devam eden bir feature ekleyelim
 
@@ -156,7 +156,7 @@ git tag
 git log --oneline --graph --all
 ```
 
-![git-hello-04](./images/git_hello_04.png)
+![git-hello-04](./images/week_02_04.png)
 
 ### Özetle
 
@@ -273,13 +273,13 @@ public class Main {
 }
 ```
 
-![anemic product class](./images/anemic_product.png)
+![anemic product class](./images/week_02_05.png)
 
 ## Class ve Record Karşılaştırması
 
 Yine kobay Northwind veritabanındaki birkaç tablo içeriğini göz önüne alalım. orders, customers, employees ve suppliers.
 
-![address_object](./images/address_object.png)
+![address_object](./images/week_02_06.png)
 
 Grafikten de görüleceği üzere her tablo adres bilgisi için aynı türden alanları içermekte. İlişkisel veritabanında adres bilgisini ayrı bir tablo olarak tutmak da mantıklı olabilir. Bu sadece join maliyetini artırır ancak veri bütünlüğünü ve tekrar kullanılabilirliği sağlar. Veritabanı modeli bir yana kod tarafından duruma baktığımızda adres dediğimiz kavramın birden fazla alanın bir arada tutulduğu bir nesne olarak temsil edilmesi gerekir. Şehir tek başına bir alan olabilir ama bir sipariş adresinden, müşterinin posta adresinden veya tedarikçinin iletişim adresinden bahsettiğimizde yeterli değildir. Adres bilgisi genellikle sokak, cadde, mahalle, şehir, posta kodu, eyalet, ülke gibi birden fazla bileşenden oluşur. Bu nedenle kod tarafında adres nesnesini aşağıdaki gibi bir sınıfla temsil etmek mantıklıdır.
 
@@ -380,7 +380,7 @@ public class Main {
 }
 ```
 
-![address class](./images/address_runtime.png)
+![address class](./images/week_02_07.png)
 
 Address sınıfı gibi immutable ve eşit olma halini tüm veri içeriği ile tanımlayan sınıflar, değer nesnesi *(value object)* olarak da adlandırılır. Bu tür sınıflar, nesne kimliğinden *(tekil ve benzersiz bir identity değeri)* ziyade içeriklerine göre karşılaştırılırlar ve genellikle iş mantığında veri bütünlüğünü sağlamak için kullanılırlar. Aynı tasarım ilkesi **record** türü yardımıyla da uygulanabilir. Bu sefer posta adresini temsil eden bir **record** tanımlayalım.
 
@@ -417,13 +417,13 @@ System.out.println(postalAddress.country());
 System.out.println(postalAddress); // calls toString() method
 ```
 
-![address record runtime 1](./images/address_rec_00.png)
+![address record runtime 1](./images/week_02_08.png)
 
 ```bash
 javap -p target/classes/com/lectures/business/objects/domain/PostalAddress.class
 ```
 
-![address record runtime 2](./images/address_rec_01.png)
+![address record runtime 2](./images/week_02_09.png)
 
 ### ByteCode'un Derinlikleri
 
@@ -479,7 +479,7 @@ BootstrapMethods:
 
 Biraz kafa karıştırıcı tabii. `1:` kısmındaki `#` ile başlayan parçalar yine Constant Pool'daki girdilere işaret eder. Buradaki metot zincirini aslında aşağıdaki gibi özetleyebiliriz.
 
-![toString flow](./images/toString_flow.png)
+![toString flow](./images/week_02_10.png)
 
 Aslında ortada `[TypeName(Value;Value;Value;Value)]` gibi bir yapı görünmüyor. Bootstrap'ın JVM tarafında bir tarifi işlediğini iddia ediyoruz. Bunu ispat etmek için JVM'in yaptığını elle yapmayı deneyebiliriz. Aşağıdaki kod parçasına bir bakalım. Burada ObjectMethods.bootstrap metodunu doğrudan çağırıyoruz ve yukarıdaki bytecode tarifinin benzerini parametre olarak geçiyoruz. lookup, "toString" aslında çağırmak istediğimiz metodu temsil ediyor. Eğer her şeyi doğru yaparsak, handle.invoke(address) çağrısı, son satırdaki println çağrısı ile aynı çıktıyı verecektir.
 
@@ -510,7 +510,7 @@ public static void main(String[] args) throws NoSuchMethodException, IllegalAcce
 
 Çıktı aşağıdaki gibidir. Sonuçlar görüldüğü gibi aynı.
 
-![address runtime 02](./images/address_runtime_02.png)
+![address runtime 02](./images/week_02_11.png)
 
 Şimdi handle nesnesindeki bootstrap parametrelerinde bir değişiklik yapalım. Türkçeleştirelim.
 
@@ -523,8 +523,26 @@ MethodHandle handle = ((CallSite) ObjectMethods.bootstrap(
             getters)).getTarget();
 ```
 
-![address runtime 03](./images/address_runtime_03.png)
+![address runtime 03](./images/week_02_12.png)
 
 Çıktıdaki alan adları, record'daki gerçek alan adlarından değil, bootstrap'a verdiğimiz metinden geldi. Bu da `PostalAddress[alan=değer, ...]` formatının `ObjectMethods` tarafından, sınıf dosyasındaki tarife göre üretildiğini gösteriyor. Hatırlarsanız bu tarif en son baktığımız bytecode çıktısındaki Bootstrap metodunda veriliyordu.
 
 > Bu ispat üzerine biraz daha derinlemesine çalışmak ve kantıları somutlaştırmak gerekiyor.
+
+## Sorular
+
+Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz.
+
+- JavaBean sözleşmesi *(Product sınıfı)* neden parametresiz *(no-arg)* bir constructor gerektiriyor? `JPA/Hibernate` veya `Jackson` gibi framework'ler bu kurala neden ihtiyaç duyar?
+- Martin Fowler'ın *Anemic Domain Model* kavramını araştırın ve neden bir `anti-pattern` olarak görüldüğünü açıklamaya çalışın. Anemik bir modelin kabul edilebilir olduğu senaryolar var mıdır *(DTO'lar olabilir mi)*?
+- Product sınıfında `productId` için `int`, `categoryId` içinse `Integer` primitive kullandık. Bu tercihin veritabanındaki NULL kavramı ile ilişkisi nedir? `0` ile `null` arasındaki anlam farkını araştırın.
+- `unitsInStock` alanı `short` tanımlı. Buna göre örneğin `setUnitsInStock((short) 40000)` çağrısı ne üretir? Bu tür sessiz veri taşmaları *(overflow)* domain nesnelerinde nasıl engellenebilir?
+- `equals` metodunu override edip `hashCode` metodunu override etmezsek, örneğin bir `HashSet<Address>` içine aynı içerikteki iki adresi eklediğimizde ne olur? *(equals/hashCode sözleşmesini inceleyebilirsiniz)*
+- Address sınıfındaki `equals` metodu `instanceof` kullanıyor. Bunun yerine `getClass() != other.getClass()` kullanılsaydı ne değişirdi? Sınıfın `final` olmasının bu tercihle bir ilişkisi var mı? *(simetri ve Liskov Substitution prensibine bakmak gerekebilir)*
+- Address constructor'ı değerleri `strip()` ile kırpıyor. "Main St" ile "main st" sizce aynı adres midir? Normalizasyon *(büyük/küçük harf, boşluk, Türkçe karakterler)* value object içinde mi yoksa dışında mı yapılmalıdır?
+- `postalCode` alanının yanında "can be Value Object" notunu düşmüştük. Posta kodu ülkeye göre farklı formatlarda olduğuna göre `PostalCode` değer nesnesi nasıl tasarlanır? Doğrulama için ülke bilgisine ihtiyaç duyması tasarımı nasıl etkiler?
+- Record'lar başka bir sınıftan türeyemez ve kendileri de türetilemezken bir interface uygulayabilirler. Neden böyle bir kısıtlama getirilmiş olabilir?
+- Record'lar *shallow immutable*'dır. `List<String>` tipinde bir alanı olan bir record gerçekten değiştirilemez midir? *(Compact constructor içinde `List.copyOf` kullanmanın etkilerini analiz edebilirsiniz)*
+- Record'ların `toString`, `equals` ve `hashCode` metotları neden derleme zamanında bytecode olarak gömülmek yerine `invokedynamic` ile çalışma zamanında üretilmekte? JEP 280 *(Indify String Concatenation özelliği)* ile benzer bir motivasyon var mıdır?
+- Bir record JPA *(Java Persistence API)* entity'si olarak kullanılabilir mi? Kullanılamıyorsa record'lar kalıcılık *(persistence)* katmanında hangi rollerde işe yarar?
+- Adres bilgisini her tabloda ayrı kolonlar olarak tutmak ile ayrı bir `addresses` tablosunda tutmak arasındaki tercih, kod tarafındaki değer nesnesi *(Value Object)* tasarımını etkiler mi?

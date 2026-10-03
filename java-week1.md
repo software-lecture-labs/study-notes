@@ -2,9 +2,9 @@
 
 ## Gitflow Branch Stratejisi
 
-Bu derste aşağıdaki çizim üzerinde duruldu ve proje geliştirme süreçlerinde kullanılan branch stratejilerinden birisi olan Gitflow tanıtıldı.
+Bu derste aşağıdaki çizim üzerinde durduk ve proje geliştirme süreçlerinde kullanılan branch stratejilerinden birisi olan `git-flow` stratejisini tanıttık.
 
-![Gitflow Strategy](./images/gitflow_strategy.png)
+![Gitflow Strategy](./images/week_01_00.png)
 
 Senaryoya göre ürüne eklenmek istenen iki geliştirme *(feature)* var.
 
@@ -154,7 +154,7 @@ Aşağıdaki konuları tartışabiliriz;
 
 Bu dersin bir diğer bölümünde kobay **Nortwhind** veritabanındaki **Customers** tablosunun kod tarafındaki karşılığının bir sınıf olarak nasıl yazılacağı üzerinde duruldu.
 
-![Northwind customers table](./images/northwind_customers_table.png)
+![Northwind customers table](./images/week_01_01.png)
 
 Kurumsal çözümlerde iş nesnelerinin *(business objects)* farklı türlerde temsili söz konusu olabilir. Sadece alanlardan oluşan bir POJO *(Plain Old Java Object)* sınıfı olabileceği gibi, davranışları da içeren daha karmaşık sınıflar da olabilir. Değiştirilemez iş kuralları ve mantık bu sınıfların içinde yer alabilir. Değiştirilemezlik söz konusu ise sınıf yerine **record** kullanımı da tercih edilebilir. Hatta Domain Driven Design *(DDD)* yaklaşımında **Entity**, **Value Object**, **Aggregate** gibi kavramlar da iş nesnelerinin temsili için kullanılır. Bu dersteki ısınma turunda ilk olarak **Customers** tablosunun POJO karşılığı değerlendirildi.
 
@@ -286,3 +286,19 @@ public class BusinessDesign {
 ---
 
 Bir sonraki konuda iş nesnelerinin farklı türevlerini incelemeye devam edeceğiz. Daha farklı iş kuralları içeren zengin domain nesneler, record'lar ve zaman kalırsa aggregate root'lar üzerinde duracağız.
+
+## Sorular
+
+Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz.
+
+- Customer sınıfı `final` olarak tanımlandı. `final` belirteci kaldırılırsa alt sınıflar **immutability** garantisini hangi yollarla bozabilir?
+- Customer constructor'ı dört adet `String` parametre alıyor. `main` metodundaki yorum satırına alınmış `bobRight` örneğine dikkatlice bakalım. Argümanlar doğru sırada mı geçilmiş? Bu tür hataları derleme zamanında yakalamak için neler yapılabilir? *(Builder pattern, static factory metotlar, `CustomerId` gibi value object'ler, Primitive Obsession vs konuları araştırılabilir)*
+- `customerId` alanının 5 alfanümerik karakterden oluşması gerekiyor. Bu kuralı Customer içinde mi tutmalıyız yoksa ayrı bir `CustomerId` tipine mi taşımalıyız? Hangisi daha fazla yerde tekrar kullanılabilir?
+- Doğrulama hatalarını **exception** fırlatarak bildirdik. Kullanıcı formundan gelen dört alanın da hatalı olduğu bir senaryoda kullanıcı hataları tek tek mi görür? *(Notification pattern veya `Result` / `Either` gibi alternatifleri araştırabilirsiniz)*
+- Null kontrolü için `IllegalArgumentException` mı, yoksa `Objects.requireNonNull` ile `NullPointerException` mı fırlatılmalı? *(JDK'nın kendi sınıfları hangi yaklaşımı izliyor bakılabilir)*
+- Bir müşterinin şirket adı değiştiğinde immutable Customer nesnesi ile ne yaparız? `withCompanyName(...)` gibi yeni bir nesne döndüren metotlar bu durumu nasıl çözer? Kimliği *(identity)* olan bir Entity'nin immutable olması mantıklı mıdır?
+- İçerikleri birebir aynı olan iki Customer nesnesi `equals` ile karşılaştırıldığında ne sonuç verir? Bir Entity için eşitlik tüm alanlara göre mi, yoksa yalnızca kimlik *(customerId)* değerine göre mi tanımlanmalıdır?
+- "Immutable nesneler thread-safe'tir" diyoruz. **Java Memory Model**'in `final` işaretlenmiş alanlar için verdiği özel bir garanti var mıdır araştıralım *(safe publication)*
+- İş kurallarını hiçbir bağımlılık olmadan nesnenin kendi tasarımında tutmayı hedefledik. Customer sınıfına `@Entity`, `@Column` gibi JPA anotasyonları eklemek bu ilkeyi bozar mı?
+- `main` metodundaki `catch` bloğu boş bırakılmış. Exception'ı yutmanın *(swallowing)* üretim ortamında ne gibi sonuçları olabilir?
+- Sürüm tag'lerinde `v2026.09.2` gibi tarih bazlı bir format kullandık. CalVer *(Calendar Versioning)* ile SemVer *(Semantic Versioning)* yaklaşımlarını araştıralım. Bir kütüphane ile bir son kullanıcı uygulaması için hangisi daha uygun olabilir tartışalım.
