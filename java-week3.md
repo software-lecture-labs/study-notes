@@ -135,9 +135,241 @@ System.out.println(money5);
 
 Şimdilik Money record tek başına bir anlam ifade etmiyor olabilir. Ancak daha önceden ele aldığımız Product ve sonradan bakacağımız Order türlerindeki fiyat, toplam fiyat gibi alanların artık Money türünden olması, para birimi ve hesaplama konularında daha güvenli ve tutarlı bir yaklaşıma sahip olmamızı sağlayacaktır. Parasal birimlerin garantisini bu türü içerecek diğer iş nesnelerine de taşımış olacağız.
 
+## Rich Entity Oluşturmak
+
+Elimizdeki domain nesneleri daha tutarlı hale gelmeye başladığında zengin entity ve aggregate root tasarımlarına geçiş yapabiliriz. Bu sayede iş kuralları ve davranışlar, veri yapılarından ayrılarak daha anlamlı ve yönetilebilir hale gelecektir. İşe yine Northwind veritabanındaki siparişler üzerinden devam edebiliriz. Siparişler Order tablosunda tutulmaktadır. Her sipariş içerisinde birden fazla sipariş kalemi olabilir. Tablo yapıları aşağıdaki grafikte olduğu gibidir.
+
+![Order and OrderItem table structure](./images/week_03_02.png)
+
+Orders tablosu ile Order_Details tablolarının nesne olarak ifade edeceğiz. Sipariş adreslerini temsil edecek bir türümüz var *(Address sınıfımız veya record verisyonu)*. Order_Details tablosu ayrı bir tür olarak tanımlanabilir *(record kullanabiliriz)*. Sipariş kaleminin fiyatı için yeni tasarladığımız Money nesnesini kullanabiliriz. Siparişlerin durum bilgisi de önemlidir. Bunun için bir enum tanımlayabiliriz. İşe OrderStatus enum'ı ile başlayalım.
+
+```java
+public enum OrderStatus {
+    DRAFT,
+    CONFIRMED,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED
+}
+```
+
+Bir siparişin hangi durumda olduğu bilgisi iş kuralları açısından önemlidir. Duruma göre aksiyonlar alınabilir ve iş süreçleri yönetilebilir.
+
+### OrderLine Record
+
+Sipariş kalemlerini temsil edecek OrderLine record'u ile devam edelim.
+
+```java
+public record OrderLine(int productId, Money unitPrice, int quantity, BigDecimal discount) {
+
+    public OrderLine {
+        if (productId <= 0) {
+            throw new IllegalArgumentException("productId must be positive: " + productId);
+        }
+        Objects.requireNonNull(unitPrice, "unitPrice must not be null");
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive: " + quantity);
+        }
+        Objects.requireNonNull(discount, "discount must not be null");
+        if (discount.signum() < 0 || discount.compareTo(BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException("discount must be within [0, 1]: " + discount);
+        }
+    }
+
+    public Money lineTotal() {
+        return unitPrice.times(quantity).discountedBy(discount);
+    }
+
+    public OrderLine withAdditionalQuantity(int extra) {
+        return new OrderLine(productId, unitPrice, quantity + extra, discount);
+    }
+}
+```
+
+Dikkat edileceği üzere birim fiyat `Money` türünde tutulmaktadır ve sipariş kaleminin toplam tutarı `lineTotal` metodu ile hesaplanırken yine Money türünden gelen times ve discountedBy metotları kullanılmaktadır. Bu sayede birim fiyat ve toplam tutar arasındaki ilişki, `OrderLine` record'u içerisinde kapsüllenmiş olur. Sipariş kaleminin miktarını artırmak için `withAdditionalQuantity` metodu kullanılabilir ve bu metodun dönüş değeri yeni bir `OrderLine` nesnesidir. Compact constructor bir dizi basit kural kontrolü de yapar. Örneğinde productId ve quantity'nin pozitif olması, unitPrice ve discount'un null olmaması ve discount'un [0, 1] aralığında olması gibi kontroller burada icra edilir. Dolayısıyla object user bir OrderLine nesnesi örneklerken birçok garantiye sahip olur. Exception fırlatılarak yapılan cezalandırmalar bazen garip gelebilir ancak domain primitive bir hata mekanizması ile işler ve burayı kullanacak diğer bileşenlerin doğru domain kurallarına göre inşa edilmesi sağlanır.
+
+### Order Aggregate
+
+Bir siparişin içerisinde değişken birçok alan vardır. Sipariş kalemleri eklenip, çıkartılabilir ve bu toplam sipariş tutarının yeniden hesaplanmasını gerektirir. Her siparişin gideceği bir adres bilgisi vardır ama bazen bu da değiştirilebilir *(siparişim komşuma gelsin gibi)*. Bununla birlikte siparişin akış boyunca durumu da değişir. Önce draft halindedir ve onaylandığında veya iptal edildiğinde de state bilgisi değişir. Bu tip durumlar göz önüne alındığında birçok davranışa sahip, veri tutan ve bazı domain kurallarını uygulayan, değer türlerini veya başka nesneleri içeren bir tasarımdan bahsediyor oluruz. Bunu şu an için bir rich entity olarak düşünebiliriz *(Her siparişin benzersiz bir kimlik bilgisi olacağı(OrderId) düşüncesinden yola çıkarak)* Diğer yandan sipariş kalemlerini kendi üzerinde yönettiği için bir aggregate root olarak da davranır. Şimdi oldukça uzun bir sınıf ile karşı karşıyayız. 
+
+> İlerleyen haftalarda bu kavramlar daha da netleşecek ve nesne yapılarımız yer yer değişerek evrilecektir.
+
+```java
+public final class Order {
+
+    private static final int MAX_LINES = 50;
+
+    private final int orderId;
+    private final String customerId;
+    private final LocalDate orderDate;
+    private final List<OrderLine> lines = new ArrayList<>();
+
+    private OrderStatus status = OrderStatus.DRAFT;
+    private Address shippingAddress;
+    private LocalDate shippedDate;
+
+    public Order(int orderId, String customerId, LocalDate orderDate) {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("orderId must be positive: " + orderId);
+        }
+        if (customerId == null || customerId.isBlank()) {
+            throw new IllegalArgumentException("customerId must not be blank");
+        }
+        this.orderId = orderId;
+        this.customerId = customerId.strip();
+        this.orderDate = Objects.requireNonNull(orderDate, "orderDate must not be null");
+    }
+
+    public void addLine(int productId, Money unitPrice, int quantity, BigDecimal discount) {
+        requireStatus(OrderStatus.DRAFT, "add a line");
+
+        int existing = indexOfProduct(productId);
+        if (existing >= 0) {
+            lines.set(existing, lines.get(existing).withAdditionalQuantity(quantity));
+            return;
+        }
+        if (lines.size() == MAX_LINES) {
+            throw new IllegalStateException("an order cannot hold more than " + MAX_LINES + " lines");
+        }
+        lines.add(new OrderLine(productId, unitPrice, quantity, discount));
+    }
+
+    public void removeLine(int productId) {
+        requireStatus(OrderStatus.DRAFT, "remove a line");
+        int index = indexOfProduct(productId);
+        if (index < 0) {
+            throw new IllegalArgumentException("product is not on this order: " + productId);
+        }
+        lines.remove(index);
+    }
+
+    public void shipTo(Address address) {
+        requireStatus(OrderStatus.DRAFT, "change the shipping address");
+        shippingAddress = Objects.requireNonNull(address, "address must not be null");
+    }
+
+    public void confirm() {
+        requireStatus(OrderStatus.DRAFT, "confirm");
+        if (lines.isEmpty()) {
+            throw new IllegalStateException("an order without lines cannot be confirmed");
+        }
+        if (shippingAddress == null) {
+            throw new IllegalStateException("an order without a shipping address cannot be confirmed");
+        }
+        status = OrderStatus.CONFIRMED;
+    }
+
+    public void ship(LocalDate date) {
+        requireStatus(OrderStatus.CONFIRMED, "ship");
+        Objects.requireNonNull(date, "shipped date must not be null");
+        if (date.isBefore(orderDate)) {
+            throw new IllegalArgumentException("shipped date cannot precede the order date");
+        }
+        shippedDate = date;
+        status = OrderStatus.SHIPPED;
+    }
+
+    public void cancel() {
+        if (status == OrderStatus.SHIPPED) {
+            throw new IllegalStateException("a shipped order cannot be cancelled");
+        }
+        status = OrderStatus.CANCELLED;
+    }
+
+    // --- behaviour end ---    
+    public Money total() {
+        return lines.stream()
+                .map(OrderLine::lineTotal)
+                .reduce(Money::plus)
+                .orElse(Money.tl("0"));
+    }
+
+    // --- state begin ---
+    public int orderId() {
+        return orderId;
+    }
+
+    public String customerId() {
+        return customerId;
+    }
+
+    public LocalDate orderDate() {
+        return orderDate;
+    }
+
+    public OrderStatus status() {
+        return status;
+    }
+
+    public Optional<Address> shippingAddress() {
+        return Optional.ofNullable(shippingAddress);
+    }
+
+    public Optional<LocalDate> shippedDate() {
+        return Optional.ofNullable(shippedDate);
+    }
+
+    // Defensive copy: callers cannot reach into the aggregate.
+    public List<OrderLine> lines() {
+        return List.copyOf(lines);
+    }
+    // --- state end ---
+
+    // --- helpers begin ---
+    private int indexOfProduct(int productId) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).productId() == productId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void requireStatus(OrderStatus expected, String action) {
+        if (status != expected) {
+            throw new IllegalStateException(
+                    "cannot " + action + " an order in status " + status);
+        }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof Order order)) {
+            return false;
+        }
+        return orderId == order.orderId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(orderId);
+    }
+    // --- helpers end ---
+}
+```
+
+Bu sınıfın neler vaat ettiğini özetlemeye çalışalım.
+
+- Order nesnesi, siparişin durumunu ve içindeki ürünleri yönetebilir.
+- Alanları için setter metotları barındırmaz.
+- Sipariş yönetimi için addLine, removeLine gibi metotlar sunar ve bu metotlar nesneyi ilk örneklediğimizde oluşturulan List'e etki eder.
+- Siparişin bir adrese yönlendirilmesi shipTo ile sağlanırken, adresin tamamı bir bütün olarak değiştirilir; yarım bir adres güncellenemez. Adresin geçerliliğini Address sınıfının *(veya record)* üzerindeki domain kuralları sağlıyordu hatırlayalım.
+- Siparişin gönderilmesi de ship() metodu ile gerçekleştirilir ve bu işlem siparişin durumunu değiştirir. Tarih bilgisi `java.time` paketinden gelen `LocalDate` ile tutulur ki bu da bir immutable tarih-zaman nesnesidir.
+- Siparişin durumu confirm, ship, cancel gibi metotlarla değişir.
+- Bir siparişin toplam tutarı aslında tuttuğu OrderLine listesi üzerinden hesaplanır. total metodu her çağrıldığında güncel ve doğru bir değer hesaplaması yapar zira toplam tutar herhangi bir ara değişkene bağlı değildir. Doğrudan OrderLine nesnelerinin toplamı alınır.
+- Pek tabii getter metotları da mevcuttur ancak bunlar nesnenin iç durumunu doğrudan değiştirmeye izin vermez; sadece bilgiyi dışarıya sunar.
+- Bir sipariş oluştuğunda hemen sipariş adresi veya sipariş tarihi bilgisine sahip olmayabilir *(draft modda mesela)*. Bu nedenle shippingAddress ve shippedDate gibi metotlar Optional döner. Yani çağıran taraf bu bilgilerin mevcut olup olmadığını kontrol etmek zorundadır.
+- lines metodu içinse ayrı bir durum söz konusudur. Dikkat edileceği üzere Order nesnesinin sahip olduğu listeyi döndürmek yerine onun bir kopyasını döndürür. Bu sayede dışarıdan yapılan değişiklikler Order nesnesinin iç durumunu etkilemez. *(Referans türlerini düşünün)*
+- Order nesnesinin eşitlik ve hashCode mantığı, sadece orderId alanına dayanır. Bu sayede aynı sipariş kimliğine sahip iki nesne eşit kabul edilir, diğer alanlar dikkate alınmaz. Bu son derece normaldir çünkü bir siparişin kimliği onun tekil tanımlayıcısıdır. *(PostalAddress record gibi değer nesnelerinden farklı bir mantık izler)*
+
 ## Sorular
 
-Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz.
+Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabilirsiniz. Bu sorular tasarladığımız Money, Order, OrderLine gibi nesnelerin ne kadar doğru ve etkili tasarlandığını sorgulamamıza yardımcı olacaktır.
+
+### Money
 
 - Money nesnelerinin neden `immutable` olması gerekir?
 - `tl(String amount)` metodu yerine `from(String amount, Currency currency)` gibi bir metot tercih edilebilir miydi?
@@ -156,3 +388,29 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabil
 - Money bir JPA entity'si içinde nasıl saklanır? `@Embeddable` ve `AttributeConverter` yaklaşımlarını araştırın. Veritabanında tutar ve para birimi için iki kolon mu, tek kolon mu kullanılmalı?
 - Java ekosisteminde JSR 354 *(JavaMoney / Moneta)* ve Joda-Money gibi kütüphaneler neden ortaya çıkmıştır? Kendi Money tipimizi yazmak ile bu kütüphaneleri kullanmanın artıları ve eksileri nelerdir?
 - Hafta 2'deki Product sınıfında `float unitPrice` alanını `Money` ile değiştirdiğimizde hangi hataları derleme zamanında, hangilerini çalışma zamanında yakalamış oluruz?
+
+### Order, OrderLine ve OrderStatus
+
+- `cancel()` metodu yalnızca `SHIPPED` durumunu engelliyor. Teslim edilmiş *(DELIVERED)* ya da zaten iptal edilmiş bir sipariş iptal edilebilir mi? Ayrıca sınıfta `DELIVERED` durumuna geçiren bir metot var mı? Siparişin durum geçişlerini bir durum diyagramı *(state diagram)* olarak çizip konuyu daha net açıklayabiliriz.
+- Durum geçiş kurallarını `requireStatus` ile Order içinde dağınık olarak kontrol etmek yerine `OrderStatus` enum'ına `canTransitionTo(OrderStatus next)` gibi bir metot eklesek nasıl olurdu?
+- `OrderStatus`'a ileride `RETURNED` gibi yeni bir durum eklendiğinde kodun hangi noktalarının değişmesi gerekir? `switch` ifadelerinin *(switch expression)* enum'larda sağladığı *exhaustiveness* kontrolü burada nasıl yardımcı olur?
+- `addLine` metoduna listede zaten bulunan bir ürün farklı bir birim fiyat veya indirim oranı ile gönderilirse ne olur? *(Bu bir iş kuralı mı yoksa bir hata mı?)*
+- Listede zaten bulunan bir ürün için `addLine(productId, price, -2, discount)` çağrısı yapılırsa ne olur? Negatif miktar kontrolü yeni kalem eklerken çalışıyor, mevcut kalemi güncellerken de çalışıyor mu? *(Deneyerek bakalım)*
+- Bir siparişteki tüm kalemlerin aynı para biriminde olması gerektiğini düşünelim. Şu anki tasarımda TL ve USD kalemleri aynı siparişe eklenebilir ve hata ancak `total()` çağrıldığında ortaya çıkar. Sizce bu kural hangi metod ile korunmalıdır? Bir invariant'ın ihlal edildiği anda değil de sonradan fark edilmesinin bedeli ne olur?
+- Hiç kalemi olmayan bir siparişte `total()` metodu `Money.tl("0")` dönüyor. Sipariş farklı bir para birimi cinsinden olsaydı bu yine de doğru bir sonuç olur muydu? Siparişin para birimi nerede tanımlanmalıdır?
+- İndirim her kalemde ayrı ayrı uygulanıp yuvarlanıyor, ardından kalem toplamları toplanıyor. Önce toplamı bulup sonra yuvarlamak farklı bir sonuç üretebilir mi? Faturada görünen tutar ile sistemdeki toplam arasında kuruş farkı oluşursa hangisi doğrudur?
+- OrderLine neden ürünün fiyatını `Product` nesnesinden okumak yerine kendi `unitPrice` alanında tutuyor? Ürünün fiyatı yarın değişirse geçmiş siparişlerin toplamı ne olmalıdır? *(Northwind veritabanındaki `order_details.unit_price` kolonunun neden var olduğunu düşünelim)*
+- İndirim oranının [0, 1] aralığında olması kuralı hem `Money.discountedBy` hem de `OrderLine` constructor'ında kontrol ediliyor. Bu bir kod tekrarı ise nasıl ortadan kaldırabiliriz? *(`DiscountRate` veya `Percentage` gibi bir value object tasarlamayı deneyin)*
+- OrderLine bir record yani bir value object olarak tasarlandı ancak veritabanında `(order_id, product_id)` birleşik anahtarı ile tutulan bir satır. Bu durumda OrderLine bir Entity mi yoksa Value Object midir? Kimliği olmayan bir şeyi nasıl güncelleriz?
+- Order, sipariş kalemlerine dışarıdan erişimi yalnızca kendi metotları üzerinden sağlıyor. Bu yaklaşımın DDD'deki *Aggregate Root* kavramı ile bir ilişkisi var mıdır? `MAX_LINES` kuralı neden OrderLine'da değil de Order'da korunabilir?
+- Order, müşteriyi bir `Customer` nesnesi yerine yalnızca `customerId` ile tutuyor. Aggregate'lerin birbirine nesne referansı yerine kimlik *(id)* ile referans vermesinin faydaları nelerdir? `customerId` alanı da `CustomerId` gibi bir value object olabilir mi?
+- `lines()` metodu `List.copyOf` ile kopya döndürüyor. Bunun yerine `Collections.unmodifiableList(lines)` de kullanılabilirdi. Ne değişirdi?
+- `shippingAddress()` ve `shippedDate()` metotları `Optional` döndürüyor ama alanların kendisi `Optional` değil. Neden böyle olabilir?
+- Order'ın eşitliği yalnızca `orderId` üzerinden tanımlandı. Kimlik değeri veritabanı tarafından üretiliyorsa *(identity / sequence)* henüz kaydedilmemiş bir siparişin kimliği ne olur? Böyle bir nesneyi `HashSet` içine koyup sonra kaydettiğimizde ne olur? Nesne kimliğini kim ve ne zaman üretmelidir? *(UUID, sequence, ULID gibi kavramlara bakalım)*
+- Sipariş adresi yalnızca `DRAFT` durumunda değiştirilebiliyor. Onaylanmış ama henüz kargoya verilmemiş bir siparişte müşteri "siparişim komşuma gelsin" derse ne olacak? Bu kuralın sahibi kimdir; yazılımcı mı, iş birimi mi?
+- `ship(LocalDate date)` gelecekteki bir tarihi de kabul ediyor. Bu doğru mu? "Bugün" bilgisini `LocalDate.now()` ile Order'ın içinden almak yerine dışarıdan *(örneğin `java.time.Clock` ile)* vermenin test edilebilirlik açısından faydası nedir? Sipariş tarihi için `LocalDate`, `LocalDateTime`, `Instant` ve `OffsetDateTime` seçeneklerini karşılaştırın.
+- Order mutable bir nesne ve `thread-safe` değil. Buna göre aynı siparişi iki farklı kullanıcı aynı anda güncellerse *(biri kalem eklerken diğeri onaylarsa)* ne olur? Bu sorun nesne seviyesinde mi yoksa *(persistence)* seviyesinde mi çözülmelidir? *(Optimistic locking, `@Version` veya farklı bir yol)*
+- Order bir `final` sınıf. Hibernate'in lazy loading için proxy sınıfları ürettiğini düşünürsek bu tercih JPA ile nasıl bir çatışma yaratır? Domain modelini framework kısıtlarından korumak için ne tür yaklaşımlar vardır?
+- Kural ihlallerinde bazen `IllegalArgumentException`, bazen `IllegalStateException` fırlatılıyor. Bu ikisinin anlamsal farkı nedir ve hangi durumda hangisini seçmeliyiz?
+- Sipariş onaylandığında stok düşülmesi, müşteriye e-posta gönderilmesi gibi aksiyonlar gerekir. Bu işleri `confirm()` metodunun içine yazmak yerine *Domain Event* *(örneğin `OrderConfirmed`)* yayınlamak ne kazandırır?
+- Order'ı da Money gibi immutable olarak tasarlasaydık *(her `addLine` yeni bir Order döndürseydi)* ne kazanır, ne kaybederdik? Entity'ler için immutability her zaman iyi bir fikir midir?
