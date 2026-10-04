@@ -723,3 +723,36 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıda bulabilir
 - Customer ve Order farklı modüllerde *(örneğin crm ve sales)* yer alıyorsa müşteri silindiğinde veya şirket adı değiştiğinde sales modülü bundan nasıl haberdar olabilir? *(Bunun için Bounded Context, Eventual Consistency ve Domain Event gibi ileri seviye kavramlarını araştırmamız lazım. Şimdilik kolay bir problem olmadığını düşünsek yeterli)*
 - **Vaughn Vernon**'un "bir transaction'da yalnızca bir aggregate değiştirilmelidir" kuralını araştıralım. Sipariş onaylandığında müşterinin kredi limitinin düşülmesi gerekiyorsa bu kuralı nasıl koruyabiliriz? *(A properly designed Aggregate is one that can be modified in any way required by the business with its invariants completely consistent within a single transaction. Vernon,2013 p.354)*
 - Bir müşterinin siparişlerini bulmanın bir sorgu *(query)* olduğunu söyledik. Yine de ekranda müşteri bilgisi ile son beş siparişini birlikte göstermemiz gerekiyorsa domain modelini bozmadan bunu nasıl yapabiliriz? *(CQRS, read model, DTO gibi konulara bakmak lazım)*
+
+### OrderStatus State Machine
+
+- İzin verilen geçişler enum constructor'ı yerine `static` bir blokta tanımlandı. `DRAFT(EnumSet.of(CONFIRMED, CANCELLED))` şeklinde constructor üzerinden tanımlamaya çalışsaydık derleyicinin tepkisi ne olurdu? Enum sabitlerinin başlatılma sırası ile ilgili *illegal forward reference* hatası araştırılabilir.
+- Neden `HashSet` yerine `EnumSet` kullanıyoruz? *(`EnumSet`'in iç yapısı(bit vector) performans ve bellek açısından ne sağlar araştıralım)*
+- Önceki derste `OrderStatus` enum türünde `DELIVERED` durumu da vardı ancak bu derste yorum dışı bıraktık. Bu durumu geri eklemek isteseydik hangi kod noktalarına dokunmamız gerekirdi?
+- Teslim edilmiş bir siparişin iade edilebilmesi *(RETURNED)* geçiş tablosunu nasıl değiştirir?
+- `isTerminal` ve `isModifiable` farklı kavramlardır. `CONFIRMED` durumundaki bir sipariş terminal midir yoksa değiştirilebilir midir? Bu iki kavramı karıştırmak hangi hatalara yol açabilir?
+- `isModifiable` metodu `this == DRAFT` ile sabit kodlanmış, status geçişleri ise bir tabloda tutuluyor. Değiştirilebilirlik bilgisini de geçiş tablosu gibi veri olarak tutmak daha tutarlı olur muydu?
+- `ship` metodu geçişi `requireTransition` ile kontrol edip durumu `status = OrderStatus.SHIPPED` ile elle değiştiriyor, `cancel` ise `transitionTo` kullanıyor. Bu tutarsızlık ileride hangi hataya kapı aralayabilir?
+- İptal edilmiş bir siparişte `confirm()` metodu çağrıldığında `OrderNotModifiableException` fırlatılıyor. Bu durum aslında geçersiz bir durum geçişi *(CANCELLED -> CONFIRMED)* değil mi? Hangi exception'ın fırlatılması gerektiğini tartışabiliriz.
+- Durum sayısı ve geçiş kuralları arttıkça *(örneğin "ödeme alınmadan kargoya verilemez" gibi koşullu geçişler)* enum tabanlı tablo yetersiz kalabilir mi? State tasarım kalıbı, `sealed interface` ile modellenmiş durumlar ve Spring Statemachine gibi kütüphaneler bu noktada ne gibi alternatifler sunabilir araştıralım.
+
+### Domain Exception'lar
+
+- Domain exception'ları unchecked tanımladık. Joshua Bloch'un *Effective Java* kitabındaki "kurtarılabilir durumlar için checked, programlama hataları için unchecked exception kullanın" önerisini araştırın. Bir kullanıcının boş sepeti onaylamaya çalışması hangi kategoriye girer?
+- `DomainException` soyut bir sınıftır *(abstract)*. Bunu `sealed` olarak tanımlayıp yalnızca belirli alt sınıflara izin vermek ne kazandırır? `switch` ile pattern matching yaparken bu nasıl bir avantaj sağlar?
+- Exception mesajı yerine `missingPart`, `from`, `to` gibi alanların test edilmesi neden daha sağlamdır? Bu alanlar bir REST API'de istemci açısından nasıl bir hata yanıtına dönüştürülebilir? *(RFC 9457 - Problem Details)*
+- Order sınıfında hala `IllegalArgumentException` ve `IllegalStateException` fırlatılan yerler var *(örneğin `MAX_LINES` aşıldığında veya listede olmayan bir ürün silinmeye çalışıldığında)*. Bunların da domain exception'a dönüştürülmesi gerekir mi? Hangi kurallar domain kuralıdır, hangileri yalnızca programlama hatasıdır?
+- Siparişte hem kalemler hem de adres eksikse `confirm()` yalnızca ilk eksikliği bildiriyor. Tüm eksiklikleri tek seferde bildirmek için `IncompleteOrderException` nasıl değiştirilebilir? `Set<MissingPart>` iş görür mü? *(Notification pattern'e de bir bakalım)*
+- Exception fırlatmak JVM *(Java Virtual Machine)* için maliyetli bir işlem midir? Stack trace üretiminin maliyetini ve `RuntimeException`'ın `writableStackTrace` parametreli constructor'ını araştıralım. Domain exception'larda stack trace'e ihtiyacımız var mıdır tartışalım.
+
+### Birim Testler
+
+- `main` metodu ile yapılan denemeler ile JUnit testleri arasındaki temel farklar nelerdir? Bir testin otomatik, tekrarlanabilir ve bağımsız olması ne anlama gelir? *(F.I.R.S.T prensiplerini araştıralım)*
+- `linesAreDefensivelyCopied` testinin adı listenin bir kopya olduğunu söylüyor ama test aslında listenin değiştirilemez *(unmodifiable)* olduğunu doğruluyor. `lines()` metodu `Collections.unmodifiableList(lines)` döndürseydi bu test yine geçer miydi? Gerçekten kopya olduğunu doğrulayan bir test fonksiyonunu nasıl yazabiliriz?
+- `equalitySemantics` testinde içeriği farklı iki siparişin eşit olduğu doğrulanıyor. Bu beklenen bir davranış mı? Kimlik eşitliği ile değer eşitliğinin farkını gösteren başka bir test senaryosu yazmaya çalışalım.
+- `newDraft`, `newConfirmableDraft`, `newShippedOrder` gibi yardımcı metotlar test verisini hazırlamak için kullanılıyor. *Object Mother* ve *Test Data Builder* kalıplarını araştıralım. *(Özellikle test sayısı arttıkça ölçeklenebilirlik açısından hangisi daha avantajlıdır öğrenmek lazım)*
+- OrderStatus geçiş tablosunu tek tek test metotları yazmak yerine `@ParameterizedTest`, `@EnumSource` veya `@CsvSource` anotasyonlarını kullanarak nasıl daha verimli şekilde test edebiliriz? Tüm durum çiftleri *(4 x 4 = 16 kombinasyon)* için hangi geçişlerin izinli, hangilerinin yasak olduğunu doğrulayan bir test yazmaya çalışalım.
+- AssertJ'nin `assertThat` ifadeleri ile JUnit'in kendi `assertEquals` metodu arasındaki fark nedir? *Fluent API* yaklaşımı test okunabilirliğine ne katar?
+- Test metotlarının isimlendirmesinde `@DisplayName` anotasyonundan yararlandık. *Given-When-Then* veya *Arrange-Act-Assert* yapılarını araştıralım ve mevcut testlerden herhangi birini bu yapıya göre yeniden düzenleyelim.
+- `pom.xml` dosyasında bağımlılıklar `test` scope ile eklendi. Bu scope'un anlamı nedir? `maven-surefire-plugin` ne işe yarar ve `mvn test` komutu hangi Maven yaşam döngüsü *(lifecycle)* adımlarını çalıştırır?
+- Tüm testlerin yeşil olması kodun doğru olduğu anlamına gelir mi? Code coverage *(JaCoCo)* ve mutation testing *(PIT)* kavramlarına bir bakalım. Örneğin mutation testing, Order sınıfındaki eksik testleri ortaya çıkarabilir mi?
