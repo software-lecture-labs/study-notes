@@ -121,7 +121,7 @@ Burada duralım ve bir önceki derste tasarladığımız Order sınıfında mü�
 
 Şu sorunun cevabını arayalım; *Order sınıfı neden Customer türünden bir nesne tutmaz?*
 
-Orde sınıfının Customer bilgisini nesne olarak tuttuğunu düşünelim. Kuvvetle muhtemel aşağıdakine benzer bir tasarıma gideriz.
+Order sınıfının Customer bilgisini nesne olarak tuttuğunu düşünelim. Kuvvetle muhtemel aşağıdakine benzer bir tasarıma gideriz.
 
 ```java
 public final class Order{
@@ -134,19 +134,19 @@ public final class Order{
 
 - **Bu tasarıma göre bir siparişi yüklemek başka neleri yükler?** Şu anki tasarımımıza göre sipariş yüklenirken beraberinde Customer nesnesini ve dolayısıyla Customer'ın Address bilgisini yükler. İlaveten OrderLine nesneleri de yüklenir. Tek bir sipariş satırını okumak istediğimizde ortama gereğinden fazla nesne yüklemiş oluruz. Buradaki basit kurguda dahi nesne grafiği bir noktadan sonra kontrolden çıkabilir.
 - **Bir işlemde kaç nesne değişir?** Order nesnesini kullanan object user açısından baktığımızda pekala bir sipariş bilgisi üzerinden müşteri bilgisi kod yoluyla değiştirilebilir. Yani müşterinin contact bilgisi alakalı olmadığı halde sipariş bilgisi üzerinden değiştirilebilir. Özellikle transaction sınırının belirsizleştiği bir durumla karşı karşıya kalırız. Görüldüğü üzere domain tasarımı transaction sınırları dahil birçok yeri etkileyen bir faktör.
-- **Bu iki nesne aynı modülde midir?** Sistem tasarlanırken bu enstrümanların aynı modül içerisinde olacağının bir garantisiz yoktur. Örneğin Order ve OrderLine, sales modülünün bir parçası iken Customer ve Address, crm modülünün bir parçası olabilir. Bu durumda Order sınıfının Customer nesnesini doğrudan tutması beraberinde bazı zorluklar da getirecektir. İki modül arasındak iletişimin nasıl sağlanacağı sorusu bunun güzel bir örneğidir. Bir API üzerinden iletişim kurmak ya da bir mesajlaşma altyapısı kullanmak gibi çözümler söz konusudur. Böyle bir senaryoda Order sınıfının Crm modülüne ait bir Customer nesnesini doğrudan tutması mümkün olmayacaktır. Kendi modülünde pekala bir Customer tasarımı içerebilir ancak müşteri bilgisinin asıl sahibi olan Crm ile senkronizasyon mekanizmasını da düşünmek zorunda kalırız.
+- **Bu iki nesne aynı modülde midir?** Sistem tasarlanırken bu enstrümanların aynı modül içerisinde olacağının bir garantisi yoktur. Örneğin Order ve OrderLine, sales modülünün bir parçası iken Customer ve Address, crm modülünün bir parçası olabilir. Bu durumda Order sınıfının Customer nesnesini doğrudan tutması beraberinde bazı zorluklar da getirecektir. İki modül arasındaki iletişimin nasıl sağlanacağı sorusu bunun güzel bir örneğidir. Bir API üzerinden iletişim kurmak ya da bir mesajlaşma altyapısı kullanmak gibi çözümler söz konusudur. Böyle bir senaryoda Order sınıfının Crm modülüne ait bir Customer nesnesini doğrudan tutması mümkün olmayacaktır. Kendi modülünde pekala bir Customer tasarımı içerebilir ancak müşteri bilgisinin asıl sahibi olan Crm ile senkronizasyon mekanizmasını da düşünmek zorunda kalırız.
 
 > Görüldüğü üzere bir siparişin ilişkili olduğu müşteri bilgisini de içeren bir sınıfı bildiğimiz yollarla tasarlamak oldukça kolayken, tasarımın yer aldığı domain'in kullanıldığı bağlamda dikkat edilmesi gereken birçok nokta ortaya çıkmaktadır.
 
-Buraya kadar anlattıklarımızdan yola çıkarak iki aggregate arasında refernas kimlikleri ile ilişki kurmanın daha uygun olduğunu söyleyebiliriz. Yani Order sınıfı doğrudan Customer nesnesini tutmak yerine sadece Customer'ın kimliğini tutar. Bu yaklaşım, yukarıda bahsedilen yükleme, değişim ve modül bağımlılığı sorunlarını minimize eder. Ek olarak bu yöntem aggregate'ler arası bileşen bağımlılığını da basitleştirir ve primitive değerler üzerinden yürütülmesini sağlar.
+Buraya kadar anlattıklarımızdan yola çıkarak iki aggregate arasında referans kimlikleri ile ilişki kurmanın daha uygun olduğunu söyleyebiliriz. Yani Order sınıfı doğrudan Customer nesnesini tutmak yerine sadece Customer'ın kimliğini tutar. Bu yaklaşım, yukarıda bahsedilen yükleme, değişim ve modül bağımlılığı sorunlarını minimize eder. Ek olarak bu yöntem aggregate'ler arası bileşen bağımlılığını da basitleştirir ve primitive değerler üzerinden yürütülmesini sağlar.
 
 Var olan nesnelerimizi bu bağlamda aşağıdaki tabloda olduğu gibi değerlendirebiliriz.
 
 | **Referans** | **Nasıl kurulur?** | **Neden tercih edilir?** |
 | --- | --- | --- |
-| **Order -> Customer** | String türden customerId tutulur. | Muhtemelen aggregat'ler ayrı modüllerde yer alacak ayrı transaction sınırları olacaktır. |
-| **Order -> OrderLine** | `List<OrderLine>` nesnesi ile tutulur. | Bir sipariş, içerdiği sipariş kalemleri olmadan anlamlı değildir. Parça, root object'in bir parçası olarak kabul edilir. Şöyle de düşünebiliriz, bir sipariş silindiğinde veya iptal ediliğinde beraberindeki sipariş kalemlerinin varlığını sürdürmesi beklenmez. |
-| **Order -> Address** | Address türünden nesne tutulur. | Address bir value object olarak tanımlanmıştır. Kimliği olmadığı, paylaşılan değil kopyalanan bir nesne olduğu için doğrudan nesne olarak tutulması uygundur. *(Onu DateTime, BigDecimal gibi diğer value object'ler gibi düşünelim)* Şu iş kuralını düşünelim birde; bir siparişin teslimat adresi değiştiğinde, bu değişikliğin sadece ilgili siparişin adresini etkilemesi gerekir, müşteri adresini değil. |
+| **Order -> Customer** | String türden customerId tutulur. | Muhtemelen aggregate'ler ayrı modüllerde yer alacak ayrı transaction sınırları olacaktır. |
+| **Order -> OrderLine** | `List<OrderLine>` nesnesi ile tutulur. | Bir sipariş, içerdiği sipariş kalemleri olmadan anlamlı değildir. Parça, root object'in bir parçası olarak kabul edilir. Şöyle de düşünebiliriz, bir sipariş silindiğinde beraberindeki sipariş kalemlerinin varlığını sürdürmesi beklenmez. |
+| **Order -> Address** | Address türünden nesne tutulur. | Address bir value object olarak tanımlanmıştır. Kimliği olmadığı, paylaşılan değil kopyalanan bir nesne olduğu için doğrudan nesne olarak tutulması uygundur. *(Onu LocalDate, BigDecimal gibi diğer value object'ler gibi düşünelim)* Şu iş kuralını düşünelim birde; bir siparişin teslimat adresi değiştiğinde, bu değişikliğin sadece ilgili siparişin adresini etkilemesi gerekir, müşteri adresini değil. |
 | **Order -> Money** | Money türünden nesne tutulur. | Money bir value object olarak tanımlanmıştır. |
 | **Customer -> Address** | Address türünden nesne tutulur. | Address bir value object olarak tanımlanmıştır. |
 
@@ -154,7 +154,7 @@ Sistemin bütününe baktığımızda bir müşterinin siparişleri olduğunu bi
 
 - Sipariş kavramı müşterinin bir parçası değildir, kendi kimliği vardır *(orderId)* ve kendi yaşam döngüsüne sahiptir.
 - Bir müşteri nesnesini belleğe almak onun verdiği tüm siparişleri belleğe yüklemek anlamına gelmez. Sayısız sipariş vermiş bir müşteriyi temsil eden nesneyi siparişleri ile birlikte belleğe taşıdığınızı düşünün, imkansız değil ama mantıklı da değil.
-- `customer.getOrders().add(newOrder)` gibi bir kod yazabildiğimiz anda, Order nenesi için geçerli olan kuralları *(confirm ve ship fonksiyonlarını düşünelim)* atlamış oluruz.
+- `customer.getOrders().add(newOrder)` gibi bir kod yazabildiğimiz anda, Order nesnesi için geçerli olan kuralları *(confirm ve ship fonksiyonlarını düşünelim)* atlamış oluruz.
 
 Şunu unutmayalım ki bir müşterinin siparişlerini bulmak bir sorgu *(query)* işlemidir, bir aggregate'in parçası olma durumu değildir. Örneğin bunu ilerleyen zamanlarda bir repository nesnesi üzerinden `OrderRepository.findByCustomer(customerId)` gibi bir metotla gerçekleştirebiliriz.
 
@@ -172,6 +172,7 @@ public enum OrderStatus {
     CONFIRMED,
     SHIPPED,
     CANCELLED;
+    // DELIVERED durumunu bilinçli olarak kaldırdık.
 
     private Set<OrderStatus> allowedTransitions;
 
@@ -200,7 +201,7 @@ public enum OrderStatus {
 }
 ```
 
-Görüldüğü üzere Java'nın zengin enum özellikleri onu davranışları *(behaviors)* ve durum bazlı geçişleri *(state transitions)* merkezi bir şekilde tanımlayabilen güçlü bir araç haline getirdi. Dolayısıyla OrderStatus enum nesnesini artık sipariş durumlarını yöneten merkezi bir otorite olarak düşünebiliriz. İzin verilen geçişler Set veri yapısı içerisinde tutulur. static kod bloğu içerisinde her bir durum için izin verilen durum geçişleri de tanımlanır. Örneğin DRAFT durumundan yalnızca CONFIRMED veya CANCELLED durumlarına geçiş yapılabilir veya iptal edilen bir sipariş hiçbir duruma geçiş yapmaz ve bu `EnumSet.noneOf(OrderStatus.class)` ile ifade edilir. Veri yapısı birkaç fonksiyonelliği de dışarıya açar. allowedTransitions metodu izin verilen geçişleri değiştirilemez bir Set olarak döner. canTransitionTo metodu belirli bir duruma geçişin mümkün olup olmadığını bildirir, isTerminal metodu siparişin artık değiştirilemez bir durumda olup olmadığını belirtir. isModifiable metodu ise siparişin henüz taslak aşamasında olup olmadığını döndürür gibi. *(Aşağıdaki kod parçasını çalıştırarak deneyin)*
+Görüldüğü üzere Java'nın zengin enum özellikleri onu davranışları *(behaviors)* ve durum bazlı geçişleri *(state transitions)* merkezi bir şekilde tanımlayabilen güçlü bir araç haline getirdi. Dolayısıyla OrderStatus enum nesnesini artık sipariş durumlarını yöneten merkezi bir otorite olarak düşünebiliriz. İzin verilen geçişler Set veri yapısı içerisinde tutulur. static kod bloğu içerisinde her bir durum için izin verilen durum geçişleri de tanımlanır. Örneğin DRAFT durumundan yalnızca CONFIRMED veya CANCELLED durumlarına geçiş yapılabilir veya iptal edilen bir sipariş hiçbir duruma geçiş yapmaz ve bu `EnumSet.noneOf(OrderStatus.class)` ile ifade edilir. Veri yapısı birkaç fonksiyonelliği de dışarıya açar. allowedTransitions metodu izin verilen geçişleri değiştirilemez bir Set olarak döner. canTransitionTo metodu belirli bir duruma geçişin mümkün olup olmadığını bildirir, isTerminal metodu siparişin başka bir duruma geçip geçemeyeceğini belirtir. isModifiable metodu ise siparişin henüz taslak aşamasında olup olmadığını döndürür gibi. *(Aşağıdaki kod parçasını çalıştırarak deneyin)*
 
 ```java
 public class OrderStatusTest {
@@ -220,4 +221,505 @@ Buna göre Order sınıfını yeniden tasarlayabiliriz ama öncesinde önemli ol
 
 ## Domain Nesnelerinde Exception Yönetimi
 
-// EKLENECEK
+Şu ana kadarki tasarımlarımızda domain iş kurallarının ihlal edildiği yerlerde kesin cezalar verdik. Bunu genellikle Java'nın var olan Exception türleri ile karşıladık *(IllegalArgumentException veya IllegalStateException gibi)*. Ancak bu yaklaşımın bazı dezavantajları vardır. Örneğin, exception türlerinin domain bağlamında anlamlı olmaması veya exception yönetiminin merkezi bir şekilde yapılamaması söz konusudur. Ayrıca var olan exception'larda text içerikleri ile bilgi vermek birim testler açısından kırılgandır. Domain nesnesinden fırlatılan Exception nesnesinde kullanılan ve anlamlı bir bilgi vermeye çalışan metinsel bilginin değişmesi yine bu metinsel bilgiyi baz alan birim testlerin patlamasına yol açar. Dolayısıyla domain kurallarını anlatan güçlendirilmiş exception türleri tanımlamak daha doğru bir yaklaşımdır. Önceki derslerde tasarlamaya çalıştığımız modelleri de düşünerek aşağıdaki hiyerarşiyi inşa etmeye başlayalım.
+
+```text
+DomainException (base, abstract)
+ ├─ InvalidStateTransitionException (Geçersiz state geçişlerinde)
+ ├─ OrderNotModifiableException (Taslak durumda olmayan siparişe müdahale edilmeye çalışıldığında)
+ └─ IncompleteOrderException (Eksik sipariş bilgisinin onaylanmaya çalışılması halinde)
+```
+
+Dersin ilerleyen kısımlarında veya şu anda daha fazla Exception nesnesi de tanımlayabiliriz. Şimdilik bunlar yeterli olacaktır.
+
+DomainException sınıfı ile işe başlayalım.
+
+```java
+public abstract class DomainException extends RuntimeException {
+    protected DomainException(String message) {
+        super(message);
+    }
+}
+```
+
+Birkaç Java temel bilgisini hatırlamakta yarar var.
+
+- DomainException, RuntimeException sınıfından türer ve böylece unchecked exception olarak davranır *(Runtime exception'lar derleme zamanında yakalanmak zorunda değildir)*.
+- DomainException soyut bir sınıftır ve doğrudan örneklenemez. Sadece ondan türeyen alt sınıflar kullanılabilir.
+- DomainException sınıfının yapıcı metodu *(constructor)* protected olarak tanımlanmıştır, bu da sadece alt sınıflar tarafından çağrılabileceği anlamına gelir.
+
+> Domain ile ilgili exception'ları unchecked olarak tanımladık zira kural ihlalleri çağıranın hata yaptığı durumu temsil eder ama çağıranın bu hataları yakalaması zorunlu değildir. Checked exception daha çok çağıran tarafın gerçekten anlamlı bir yol izlemesi beklendiğinde kullanılır. Jakarta gibi framework'ler genellikle unchecked exception kullanır (PersistenceException, WebApplicationException, ConstraintViolationException gibi)
+
+Şimdi bu sınıftan türeteceğimiz diğer domain exception sınıflarını yazalım.
+
+**InvalidStateTransitionException:** Domain nesnesinde geçersiz bir state geçişi yapıldığında fırlatılır.
+
+```java
+public class InvalidStateTransitionException extends DomainException {
+    private final int orderId;
+    private final OrderStatus from;
+    private final OrderStatus to;
+    public InvalidStateTransitionException(int orderId, OrderStatus from, OrderStatus to) {
+        super("order " + orderId + " cannot move from " + from + " to " + to);
+        this.orderId = orderId;
+        this.from = from;
+        this.to = to;
+    }
+
+    public int orderId() {
+        return orderId;
+    }
+
+    public OrderStatus from() {
+       return from;
+    }
+
+    public OrderStatus to() {
+        return to;
+    }
+}
+```
+
+**OrderNotModifiableException:** Domain nesnesinde, belirli bir durumda değiştirilemez olan bir sipariş üzerinde geçersiz bir işlem yapılmaya çalışıldığında fırlatılır.
+
+```java
+public class OrderNotModifiableException extends DomainException {
+    private final int orderId;
+    private final OrderStatus status;
+    private final String attemptedAction;
+    
+    public OrderNotModifiableException(int orderId, OrderStatus status, String attemptedAction) {
+        super("cannot " + attemptedAction + " on order " + orderId + " in status " + status);
+        this.orderId = orderId;
+        this.status = status;
+        this.attemptedAction = attemptedAction;
+    }
+
+    public int orderId() {
+        return orderId;
+    }
+
+    public OrderStatus status() {
+        return status;
+    }
+
+    public String attemptedAction() {
+        return attemptedAction;
+    }
+}
+```
+
+**IncompleteOrderException:** Domain nesnesinde, eksik olan siparişler üzerinde geçersiz bir işlem yapılmaya çalışıldığında fırlatılır.
+
+```java
+public class IncompleteOrderException extends DomainException {
+
+    public enum MissingPart {
+        LINES,
+        SHIPPING_ADDRESS
+    }
+    private final int orderId;
+    private final MissingPart missingPart;
+
+    public IncompleteOrderException(int orderId, MissingPart missingPart) {
+        super("order " + orderId + " cannot be confirmed: " + missingPart + " missing");
+        this.orderId = orderId;
+        this.missingPart = missingPart;
+    }
+
+    public int orderId() {
+        return orderId;
+    }
+
+    public MissingPart missingPart() {
+        return missingPart;
+    }
+}
+```
+
+Exception sınıflarının içeriklerini dikkatlice inceleyelim. Herbiri domain iş kurallarının ihlali ile ilgili daha detaylı ve zenginleştirilmiş bilgi taşır.
+
+## Order Sınıfı Yeniden
+
+Order sınıfını yeniden ele alacağız. İki önemli değişikliğimiz var. OrderStatus enum nesnesinin yeni implementasyonu ve domain exception'ların kullanımı.
+
+```java
+public final class Order {
+
+    private static final int MAX_LINES = 50;
+
+    private final int orderId;
+    private final String customerId;
+    private final LocalDate orderDate;
+    private final List<OrderLine> lines = new ArrayList<>();
+    private OrderStatus status = OrderStatus.DRAFT;
+    private Address shippingAddress;
+    private LocalDate shippedDate;
+
+    public Order(int orderId, String customerId, LocalDate orderDate) {
+        if (orderId <= 0) {
+            throw new IllegalArgumentException("orderId must be positive: " + orderId);
+        }
+
+        if (customerId == null || customerId.isBlank()) {
+            throw new IllegalArgumentException("customerId must not be blank");
+        }
+        this.orderId = orderId;
+        this.customerId = customerId.strip();
+        this.orderDate = Objects.requireNonNull(orderDate, "orderDate must not be null");
+    }
+
+    public void addLine(int productId, Money unitPrice, int quantity, BigDecimal discount) {
+        requireModifiable("add a line");
+        int existing = indexOfProduct(productId);
+        if (existing >= 0) {
+            lines.set(existing, lines.get(existing).withAdditionalQuantity(quantity));
+            return;
+        }
+        if (lines.size() == MAX_LINES) {
+            throw new IllegalStateException("an order cannot hold more than " + MAX_LINES + " lines");
+        }
+        lines.add(new OrderLine(productId, unitPrice, quantity, discount));
+    }
+
+    public void removeLine(int productId) {
+        requireModifiable("remove a line");
+        int index = indexOfProduct(productId);
+        if (index < 0) {
+            throw new IllegalArgumentException("product is not on this order: " + productId);
+        }
+        lines.remove(index);
+    }
+
+    public void confirm() {
+        requireModifiable("confirm");
+        if (lines.isEmpty()) {
+            throw new IncompleteOrderException(orderId, IncompleteOrderException.MissingPart.LINES);
+        }
+
+        if (shippingAddress == null) {
+            throw new IncompleteOrderException(
+                    orderId, IncompleteOrderException.MissingPart.SHIPPING_ADDRESS);
+        }
+        transitionTo(OrderStatus.CONFIRMED);
+    }
+
+    public void shipTo(Address address) {
+        requireModifiable("change the shipping address");
+        shippingAddress = Objects.requireNonNull(address, "address must not be null");
+    }
+
+    public void ship(LocalDate date) {
+        requireTransition(OrderStatus.SHIPPED);
+        Objects.requireNonNull(date, "shipped date must not be null");
+        if (date.isBefore(orderDate)) {
+            throw new IllegalArgumentException("shipped date cannot precede the order date");
+        }
+        shippedDate = date;
+        status = OrderStatus.SHIPPED;
+    }
+
+    public void cancel() {
+        transitionTo(OrderStatus.CANCELLED);
+    }
+
+    // --- behaviour end ---    
+    public Money total() {
+        return lines.stream()
+                .map(OrderLine::lineTotal)
+                .reduce(Money::plus)
+                .orElse(Money.tl("0"));
+    }
+
+    // --- state begin ---
+    public int orderId() {
+        return orderId;
+    }
+
+    public String customerId() {
+        return customerId;
+    }
+
+    public LocalDate orderDate() {
+        return orderDate;
+    }
+
+    public OrderStatus status() {
+        return status;
+    }
+
+    public Optional<Address> shippingAddress() {
+        return Optional.ofNullable(shippingAddress);
+    }
+
+    public Optional<LocalDate> shippedDate() {
+        return Optional.ofNullable(shippedDate);
+    }
+
+    // Defensive copy: callers cannot reach into the aggregate.
+    public List<OrderLine> lines() {
+        return List.copyOf(lines);
+    }
+    // --- state end ---
+
+    // --- helpers begin ---
+    private int indexOfProduct(int productId) {
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).productId() == productId) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private void requireModifiable(String action) {
+        if (!status.isModifiable()) {
+            throw new OrderNotModifiableException(orderId, status, action);
+        }
+    }
+
+    private void requireTransition(OrderStatus target) {
+        if (!status.canTransitionTo(target)) {
+            throw new InvalidStateTransitionException(orderId, status, target);
+        }
+    }
+
+    private void transitionTo(OrderStatus target) {
+        requireTransition(target);
+        status = target;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+
+        if (!(other instanceof Order order)) {
+            return false;
+        }
+        return orderId == order.orderId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Integer.hashCode(orderId);
+    }
+    // --- helpers end ---
+}
+```
+
+- Artık Order sınıfında `requireStatus` yerine `requireModifiable` kullanıyoruz. Böylece statü bilgisinin hangi durumda değiştirilebileceği bilgisi enum yapısı tarafından karşılanıyor.
+- Statü geçişlerinde örneğin cancel metodunda if ile kontrol yapmak yerine bu işi `transitionTo` metoduna devrediyoruz. Kural if bloğundan geçiş tablosuna aktarılıyor. Buna göre örneğin CANCELLED'dan CANCELLED'a geçiş yapmak gibi bir durum söz konusu olamaz.
+- Bazı IllegalStateException durumlarını kendi domain exception türlerimizle değiştirdik. Örneğin siparişte eksik varsa IncompleteOrderException fırlatıyor ve detay bilgi veriyoruz. Böylece object user artık hangi parçanın eksik olduğunu koddan okuyabiliyor.
+
+## Main metodu ne kadar iyi test yapar?
+
+Order sınıfının tasarımında köklü değişiklikler yaptık. Daha modern bir Customer sınıfımız ve becerisi artırılmış OrderStatus tipimiz var. Bazı haller için kendi domain exception türlerimizi yazdık. Bu kadar çok değişiklikten sonra main metodu ne kadar iyi test yapabilir? Düşündüğümüz ve tedbir aldığımız her durum için kodun bütününü kapsamlı bir şekilde test etmek oldukça zor olabilir. Dersimizin bu anı birim testlere geçiş için iyi bir zemin de hazırlıyor. Birim testler ayrıca değerlendirilmesi gereken bir konu olsa da şimdi kullanmanın tam zamanı.
+
+### Unit Test Projesini Oluşturmak
+
+Birim testleri yazmak için öncelikle bir test projesi oluşturmamız gerekiyor. Eğer Maven kullanıyorsak, `pom.xml` dosyasına JUnit bağımlılığını eklemek bunun için yeterli olacaktır. Örnek;
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.lectures</groupId>
+    <artifactId>business-objects</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>6.0.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.27.7</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>26</maven.compiler.release>
+        <exec.mainClass>com.lectures.business.objects.BusinessObjects</exec.mainClass>
+    </properties>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+Jupiter, `@Test` ve `@DisplayName` gibi anotasyonları sağlayarak bir metodun test koşusunda ele alınmasını sağlar. Diğer yandan assertj paketinden gelen yardımcılarla daha okunabilir assert ifadeleri yazabiliriz.
+
+## Order Test Sınıfı
+
+Order için aşağıdaki birim test sınıfını yazabiliriz.
+
+```java
+class OrderTest {
+    private static final BigDecimal NO_DISCOUNT = BigDecimal.ZERO;
+    private static final LocalDate ORDER_DATE = LocalDate.of(1996, 7, 4);
+    private static final Address DESTINATION =
+            new Address("59 rue de l'Abbaye", "Reims", "51100", "France");
+    private Order newDraft() {
+        return new Order(10248, "VINET", ORDER_DATE);
+    }
+
+    private Order newConfirmableDraft() {
+        Order order = newDraft();
+        order.addLine(11, Money.tl("14.00"), 12, NO_DISCOUNT);
+        order.shipTo(DESTINATION);
+        return order;
+    }
+
+    private Order newShippedOrder() {
+        Order order = newConfirmableDraft();
+        order.confirm();
+        order.ship(ORDER_DATE.plusDays(12));
+        return order;
+    }
+
+    @Test
+    @DisplayName("total sums the lines and applies discounts")
+    void totalSumsLines() {
+        Order order = newDraft();
+        order.addLine(11, Money.tl("14.00"), 12, NO_DISCOUNT);
+        order.addLine(42, Money.tl("9.80"), 10, new BigDecimal("0.15"));
+        assertThat(order.total()).isEqualTo(Money.tl("251.30"));
+    }
+
+    @Test
+    @DisplayName("adding the same product twice increases the quantity")
+    void sameProductIsMerged() {
+        Order order = newDraft();
+        order.addLine(11, Money.tl("14.00"), 5, NO_DISCOUNT);
+        order.addLine(11, Money.tl("14.00"), 7, NO_DISCOUNT);
+        assertThat(order.lines()).hasSize(1);
+        assertThat(order.lines().get(0).quantity()).isEqualTo(12);
+    }
+
+    @Test
+    @DisplayName("the customer is referenced by identity, not by object")
+    void customerIsReferencedById() {
+        assertThat(newDraft().customerId()).isEqualTo("VINET");
+    }
+
+    @Test
+    @DisplayName("an empty order reports exactly what is missing")
+    void emptyOrderReportsMissingLines() {
+        assertThatThrownBy(() -> newDraft().confirm())
+                .isInstanceOf(IncompleteOrderException.class)
+                .extracting(e -> ((IncompleteOrderException) e).missingPart())
+                .isEqualTo(MissingPart.LINES);
+    }
+
+    @Test
+    @DisplayName("an order without a destination reports exactly what is missing")
+    void orderWithoutDestinationReportsMissingAddress() {
+        Order order = newDraft();
+        order.addLine(11, Money.tl("14.00"), 12, NO_DISCOUNT);
+        assertThatThrownBy(order::confirm)
+                .isInstanceOf(IncompleteOrderException.class)
+                .extracting(e -> ((IncompleteOrderException) e).missingPart())
+                .isEqualTo(MissingPart.SHIPPING_ADDRESS);
+    }
+
+    @Test
+    @DisplayName("the destination is replaced as a whole, never edited in part")
+    void destinationIsReplaced() {
+        Order order = newConfirmableDraft();
+        order.shipTo(new Address("Obere Str. 57", "Berlin", "12209", "Germany"));
+        assertThat(order.shippingAddress()).contains(
+                new Address("Obere Str. 57", "Berlin", "12209", "Germany"));
+    }
+
+    @Test
+    @DisplayName("a shipped order rejects new lines and a new destination")
+    void shippedOrderIsClosed() {
+        Order order = newShippedOrder();
+        assertThatThrownBy(() -> order.addLine(42, Money.tl("9.80"), 1, NO_DISCOUNT))
+                .isInstanceOf(OrderNotModifiableException.class);
+        assertThatThrownBy(() -> order.shipTo(DESTINATION))
+                .isInstanceOf(OrderNotModifiableException.class);
+        assertThat(order.status()).isEqualTo(OrderStatus.SHIPPED);
+    }
+
+    @Test
+    @DisplayName("a shipped order cannot be cancelled, and the exception says why")
+    void shippedOrderCannotBeCancelled() {
+        Order order = newShippedOrder();
+        assertThatThrownBy(order::cancel)
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .satisfies(thrown -> {
+                    InvalidStateTransitionException e = (InvalidStateTransitionException) thrown;
+                    assertThat(e.from()).isEqualTo(OrderStatus.SHIPPED);
+                    assertThat(e.to()).isEqualTo(OrderStatus.CANCELLED);
+                    assertThat(e.orderId()).isEqualTo(10248);
+                });
+    }
+
+    @Test
+    @DisplayName("a cancelled order is final: it cannot be confirmed again")
+    void cancelledOrderIsFinal() {
+        Order order = newConfirmableDraft();
+        order.cancel();
+        assertThatThrownBy(order::confirm)
+                .isInstanceOf(OrderNotModifiableException.class);
+        assertThat(order.status().isTerminal()).isTrue();
+    }
+
+    @Test
+    @DisplayName("the line list handed out is a copy")
+    void linesAreDefensivelyCopied() {
+        Order order = newConfirmableDraft();
+        assertThatThrownBy(() -> order.lines().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThat(order.lines()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("orders are equal by identity, money by value")
+    void equalitySemantics() {
+        Order a = newDraft();
+        Order b = newConfirmableDraft();
+        assertThat(a).isEqualTo(b);
+        assertThat(Money.tl("18.6")).isEqualTo(Money.tl("18.60"));
+    }
+}
+```
+
+Beklentimiz tüm testlerin yeşil bayrak kaldırmasıdır.
+
+![Order test results](./images/week_04_01.png)
+
+Benzer şekilde OrderStatus ve Customer sınıfları için de testler yazılmalıdır, deneyin.
+
+---
+
+## Sorular
+
+Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıda bulabilirsiniz.
+
+### Customer, Entity ve Aggregate Sınırları
+
+- Customer artık `setCompanyName` yerine `renameTo`, `setAddress` yerine `relocateTo` gibi metotlar sunuyoruz, neden? *(Intention-Revealing Interface kavramını araştıralım)*
+- `normaliseId` metodu kimliği `toUpperCase(Locale.ROOT)` ile büyük harfe çeviriyor. `Locale.ROOT` yerine varsayılan locale kullanılsaydı Türkçe işletim sisteminde `"vinet"` değeri neye dönüşürdü? *(Turkish I problem)*
+- Customer kimliği hala bir `String`. Hafta 1'de değindiğimiz `CustomerId` değer nesnesi artık gerekli mi? Order sınıfındaki `customerId` alanına `"vinet "` gibi bir değer verildiğinde Customer'daki normalizasyon kuralı uygulanıyor mu? Aynı kuralın iki farklı yerde farklı uygulanmasının riski nedir?
+- Customer'ın `address` alanı değiştirilebiliyor ama Address'in kendisi immutable bir nesne. Mutable bir entity'nin immutable value object içermesi iyi bir kombinasyon mudur? Customer'ın adresi değiştiğinde daha önce verilmiş siparişlerin teslimat adresi değişmeli midir sorusunuz düşünerek karar verebiliriz.
+- Customer ve Address arasındaki ilişki ile Order ve OrderLine arasındaki ilişki aynı türden midir? Address bir value object iken OrderLine'ı Order'ın bir parçası *(member/part)* yapan şey nedir? Bir nesnenin Entity mi, Value Object mi, Aggregate Root mu olduğuna karar vermek için hangi soruları sormalıyız?
+- Order'ın Customer'a kimlik *(identity)* ile referans vermesi, müşterinin sistemde gerçekten var olduğunu garanti eder mi? Örneğin var olmayan `"XXXXX"` kimliğiyle bir sipariş oluşturulabilir mi? Bu kontrol domain nesnesinin mi, application service bileşeninin mi *(ki henüz böyle bir şey yazmadık)* yoksa veritabanındaki foreign key'in mi sorumluluğudur?
+- Customer ve Order farklı modüllerde *(örneğin crm ve sales)* yer alıyorsa müşteri silindiğinde veya şirket adı değiştiğinde sales modülü bundan nasıl haberdar olabilir? *(Bunun için Bounded Context, Eventual Consistency ve Domain Event gibi ileri seviye kavramlarını araştırmamız lazım. Şimdilik kolay bir problem olmadığını düşünsek yeterli)*
+- **Vaughn Vernon**'un "bir transaction'da yalnızca bir aggregate değiştirilmelidir" kuralını araştıralım. Sipariş onaylandığında müşterinin kredi limitinin düşülmesi gerekiyorsa bu kuralı nasıl koruyabiliriz? *(A properly designed Aggregate is one that can be modified in any way required by the business with its invariants completely consistent within a single transaction. Vernon,2013 p.354)*
+- Bir müşterinin siparişlerini bulmanın bir sorgu *(query)* olduğunu söyledik. Yine de ekranda müşteri bilgisi ile son beş siparişini birlikte göstermemiz gerekiyorsa domain modelini bozmadan bunu nasıl yapabiliriz? *(CQRS, read model, DTO gibi konulara bakmak lazım)*
