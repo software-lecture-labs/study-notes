@@ -248,6 +248,8 @@ public final class Customer {
 
 Bu yeni tasarımda **object user**, bir müşteri nesnesine ihtiyaç duyduğunda overloaded constructor'ı kullanmak zorundadır. Varsayılan yapıcı *(default constructor)* artık mevcut olmadığından hiçbir bilgi içermeyen bir müşteri bilgisi sistemde dolaşamaz. Ayrıca alanlara yapılan atamalarda **null** ve boş değer kontrolleri yapılmaktadır. Bu sayede müşteri nesnesi her zaman geçerli ve eksiksiz bilgiye sahip olur. Örnek olması açısından eklenen bu iş kuralları daha da genişletilebilir. Örneğin minimum ve maksimum uzunluk kontrolleri eklenebilir veya belirli bir formatın sağlanması zorunlu kılınabilir. Tüm bunlar iş nesnesinin kurallarının Customer sınıfının bulunduğu paket nereye taşınırsa taşınsın korunmasını sağlar. İhlaller özellikle bir **exception** nesnesi fırlatılarak bilgilendirilir. Burada amaç **object user**'ın her zaman geçerli bir müşteri nesnesi ile çalışmasını garanti etmektir.
 
+> Customer tasarımını ilerleyen derslerde geliştireceğiz.
+
 Bu örnekte değindiğimiz bir diğer önemli konu, **immutability** yani nesnelerin değiştirilemezliği konusudur. Customer sınıfındaki tüm alanlar `final` olarak tanımlanmıştır ve setter metodları kaldırılmıştır. Bu sayede bir müşteri nesnesi oluşturulduktan sonra içeriği değiştirilemez, sadece okunabilir. Bunu veri bütünlüğünü korumak ve çoklu iş parçacığı *(multi-threading)* ortamlarında nesneyi güvenli bir şekilde kullanmak için tercih ederiz.
 
 ```java
@@ -285,7 +287,7 @@ public class BusinessDesign {
 
 ---
 
-Bir sonraki konuda iş nesnelerinin farklı türevlerini incelemeye devam edeceğiz. Daha farklı iş kuralları içeren zengin domain nesneler, record'lar ve zaman kalırsa aggregate root'lar üzerinde duracağız.
+İlerleyen derslerde iş nesnelerinin farklı türevlerini incelemeye devam edeceğiz. Daha farklı iş kuralları içeren zengin domain nesneleri *(Rich Entity)*, record'lar, aggregate root'lar, value object'ler vb
 
 ---
 

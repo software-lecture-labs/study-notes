@@ -7,3 +7,4 @@ Ders sırasında anlatılan konularla ilişkili haftalık notların yer aldığ�
 - [Hafta 01](java-week1.md)
 - [Hafta 02](java-week2.md)
 - [Hafta 03](java-week3.md)
+- [Hafta 04](java-week4.md)
