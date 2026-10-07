@@ -1,6 +1,6 @@
 # Hafta 05
 
-Önceki derslerimizde bir müşterinin siparişlerini Customer sınıfında `List<Order>` olarak tutmayacağımızdan bahsetmiştik. Zira bunun bir sorgu *(query)* operasyonu ama alan *(field)* olmadığını savunmuştuk. Bu derste sorguyu yazmaya çalışacağız ve bunu yaparken Optional ile Stream API enstrümanlarını nasıl kullanabileceğimizi öğreneceğiz.
+Önceki derslerimizde bir müşterinin siparişlerini Customer sınıfında `List<Order>` olarak tutmayacağımızdan bahsetmiştik. Zira bunun bir alan *(field)* değil, bir sorgu *(query)* operasyonu olduğunu savunmuştuk. Bu derste sorguyu yazmaya çalışacağız ve bunu yaparken Optional ile Stream API enstrümanlarını nasıl kullanabileceğimizi öğreneceğiz.
 
 ## Optional Sözleşmesi
 
@@ -123,7 +123,7 @@ public static void main(String[] args) {
 
 ## OrderBook ile Sipariş Yönetimi *(Repository Değil)*
 
-Burayaki kadar tasarlamaya çalıştığımız iş nesnelerini düşündüğümüzde birbirleriyle olan ilişkileri sayesinde daha anlamlı yapıların ortaya çıktığını görebiliriz. Elbette iş dünyasının akışları veriyi kalıcı olarak saklama noktasında da çeşitli gereksinimler doğurmuştur. İlerleyen derslerde siparişlerin bir veritabanında saklanacağı aşikar ancak şimdilik sipariş listesini in-memory çalışan bir nesne de tutacağız.
+Buraya kadar tasarlamaya çalıştığımız iş nesnelerini düşündüğümüzde birbirleriyle olan ilişkileri sayesinde daha anlamlı yapıların ortaya çıktığını görebiliriz. Elbette iş dünyasının akışları veriyi kalıcı olarak saklama noktasında da çeşitli gereksinimler doğurmuştur. İlerleyen derslerde siparişlerin bir veritabanında saklanacağı aşikar ancak şimdilik sipariş listesini in-memory çalışan bir nesnede tutacağız.
 
 > Bu tip in-memory veri yapıları daha küçük örnek kümeleri ile birim testlerde mock repository gibi de kullanılmaktadır. Birim testleri ele aldığımızda bu konuya tekrar dönelim.
 
@@ -225,9 +225,9 @@ OrderBook sınıfı bir aggregate nesnesi olarak düşünülmemelidir. Siparişl
 | --- | --- |
 | **add(Order order)** | İçeride tutulan orders koleksiyonuna yeni bir Order nesnesi ekler. İlk etapta null check yapılır ve ardından orderId üzerinden zaten olup olmadığı kontrol edilir. Eğer varsa object user bir exception ile uyarılır. |
 | **size()** | İçeride tutulan orders koleksiyonundaki Order nesnelerinin sayısını döner. Bu OrderBook nesnesini kullanan istemci kodlar için koleksiyondaki eleman sayısını öğrenme imkanı sağlar. |
-| **findById(int orderId)** | Belirtilen orderId'ye sahip Order nesnesini döner. Eğer böyle bir sipariş yoksa null döner. |
+| **findById(int orderId)** | Belirtilen orderId'ye sahip Order nesnesini döner. Eğer böyle bir sipariş yoksa boş bir Optional *(`Optional.empty()`)* döner, asla null dönmez. |
 | **getById(int orderId)** | Yukarıdaki metodu çağırır ama bu kez bulamazsa exception fırlatır. Bu biraz anlamsız görünebilir ancak çağıran taraf için find ile get fiillerinin farklı şekilde yorumlanabilmesini de sağlar. *(Bunu tartışalım, gerçekten bir standart olabilir mi?)* |
-| **findByCustomerId(String customerId)** | Belirtilen customerId'ye sahip Order nesnelerinin listesini döner. Sonuç, orderDate'e göre sıralanmış ve değiştirilemez bir koleksiyon olarak gelir. |
+| **findByCustomer(String customerId)** | Belirtilen customerId'ye sahip Order nesnelerinin listesini döner. Sonuç, orderDate'e göre sıralanmış ve değiştirilemez bir koleksiyon olarak gelir. |
 | **findByStatus(OrderStatus status)** | Belirtilen duruma sahip Order nesnelerinin listesini döner. Sonuç değiştirilemez *(immutable)* bir koleksiyon olarak gelir. |
 | **countByStatus()** | Order nesnelerini durumlarına göre gruplar ve her bir durum için kaç tane olduğunu döner. |
 | **revenueByCustomer()** | İptal edilmemiş siparişlerin müşteri bazında toplam gelirini döner. Sonuç, müşteri kimliğine göre sıralanmış ve değiştirilemez bir koleksiyondur. |
@@ -235,11 +235,11 @@ OrderBook sınıfı bir aggregate nesnesi olarak düşünülmemelidir. Siparişl
 | **totalRevenue()** | İptal edilmemiş tüm siparişlerin toplam gelirini döner. |
 | **partitionByShipped()** | Siparişleri gönderilmiş ve gönderilmemiş olarak iki gruba ayırır. Sonuç, true (gönderilmiş) ve false (gönderilmemiş) anahtarları ile bir map olarak gelir. |
 
-Tüm sorgularda Stream API kullanılmaktadır. Stream API arkasından gelen metot zincirleri aslında fonksiyonel dillerden aşina olduğumuz higher-order functions veya lambda ifadelerinin bir kombinasyonu olarak düşünülebilir. Bu sayede koleksiyonlar üzerinde filtreleme, gruplama, sıralama ve toplama gibi işlemler daha deklaratif ve okunabilir bir şekilde gerçekleştirilmektedir. Pekçok modern dil bu tip koleksiyon işlemleri için benzer fonksiyonel yaklaşımları desteklemektedir. .Net tarafında LINQ, rust tarafında iterators gibi.
+Tüm sorgularda Stream API kullanılmaktadır. Stream API arkasından gelen metot zincirleri aslında fonksiyonel dillerden aşina olduğumuz higher-order functions veya lambda ifadelerinin bir kombinasyonu olarak düşünülebilir. Bu sayede koleksiyonlar üzerinde filtreleme, gruplama, sıralama ve toplama gibi işlemler daha deklaratif ve okunabilir bir şekilde gerçekleştirilmektedir. Pek çok modern dil bu tip koleksiyon işlemleri için benzer fonksiyonel yaklaşımları desteklemektedir. .Net tarafında LINQ, rust tarafında iterators gibi.
 
-> **Bir pratik:** OrderBook sınıfındaki sorgulama metotlarını SQL dilini kullanarak yazmayı deneyin. SQL tarafındaki ifadeler ile orogramlama dili tarafındaki Stream API zincirlerini karşılaştırın ve benzerlikleri gözlemleyin.
+> **Bir pratik:** OrderBook sınıfındaki sorgulama metotlarını SQL dilini kullanarak yazmayı deneyin. SQL tarafındaki ifadeler ile programlama dili tarafındaki Stream API zincirlerini karşılaştırın ve benzerlikleri gözlemleyin.
 
-Elimizde nispeten daha işe yarar, herhangibir veritabanına gitmeden kullanabileceğimiz *(pek tabii sadece uygulamanın çalışma zamanı boyunca yaşayan)* bir in-memory veri yapısı bulunmakta. Aşağıdaki örnek kod parçası ile test edebiliriz.
+Elimizde nispeten daha işe yarar, herhangi bir veritabanına gitmeden kullanabileceğimiz *(pek tabii sadece uygulamanın çalışma zamanı boyunca yaşayan)* bir in-memory veri yapısı bulunmakta. Aşağıdaki örnek kod parçası ile test edebiliriz.
 
 ```java
 package com.lectures.business.design;
@@ -361,7 +361,7 @@ stream.forEach(System.out::println);
 
 ![Stream problems 2](./images/week_05_04.png)
 
-- findFirst ile findAny aynı şey değildir; Sıralı bir listede her ikisi de her zaman stream'in ilk elemanını döner ve paralel streamlerde findAny herhangi bir elemanı dönebilir. Bu yüzden amacı belirten findFirst kullanmak daha güvenlidir.
+- findFirst ile findAny aynı şey değildir; findFirst sıralı *(encounter order)* bir stream'de her zaman ilk elemanı döner. findAny ise sıralı *(sequential)* stream'lerde pratikte çoğunlukla ilk elemanı döndürse de bunun bir garantisi yoktur, paralel stream'lerde ise herhangi bir elemanı dönebilir. Bu yüzden amacı belirten findFirst kullanmak daha güvenlidir.
 
 ```java
 List<String> list = List.of("a", "b", "c");
@@ -371,7 +371,7 @@ System.out.println("findFirst: " + first.orElse("none"));
 System.out.println("findAny: " + any.orElse("none"));
 ```
 
-- Stream kullanımı her zaman okunur değildir. Söz gelimi aşağıda içeriği verilen indexOfProduct metodunu stream'e çevirmek istediğimiz düşünelim.
+- Stream kullanımı her zaman okunur değildir. Söz gelimi aşağıda içeriği verilen indexOfProduct metodunu stream'e çevirmek istediğimizi düşünelim.
 
 ```java
 private int indexOfProduct(int productId) {
@@ -566,6 +566,15 @@ Apache NetBeans üzerinden yakalanan test sonuçları;
 
 ## Sorular
 
-Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıda bulabilirsiniz.
+Bu dersle ilgili olarak bizi araştırmaya konuları aşağıda bulabilirsiniz.
 
-// EKLENECEK
+- Optional dönen bir metodu çağıran taraf, değeri kontrol etmeye gerçekten zorlanır mı? `findById(1).get()` yazmamızı engelleyen bir şey var mı? Notlarda Optional zincirinin `isPresent()` + `get()` ile yazılan if bloğundan daha uzun olduğunu söyledik. Brian Goetz'in Optional'ın tasarım amacı hakkındaki açıklamalarını araştırın ve iki yazım şeklini okunabilirlik ve hata riski açısından karşılaştırın.
+- `orElse(Money.tl("0"))` ile `orElseGet(() -> Money.tl("0"))` arasındaki fark nedir? Değer mevcut olduğunda bile `orElse` içindeki ifade çalışır mı? Varsayılan değeri üretmek pahalı bir işlem olsaydı eğer *(örneğin veritabanı çağrısı)* hangisini seçerdiniz?
+- `findById` metodu listedeki Order nesnesinin kendisini döndürüyor. Çağıran taraf bu nesne üzerinde `cancel()` metotunu kullanırsa OrderBook içindeki sipariş de değişir mi? `createSampleOrders` metodunda siparişin `add` ile eklendikten sonra `confirm` ile onaylanması da mümkün. Bu nasıl çalışıyor? Bu açıdan baktığımızda "OrderBook siparişleri değiştirmez" iddiamız ne kadar doğrudur?
+- Eklediğimiz sorgulama metotlarının değiştirilemez koleksiyonlar *(immutable collections)* döndürdüğünden bahsetmiştik. `toList()` için bu doğruyken, `countByStatus`, `revenueByCustomer` ve `partitionByShipped` için de doğru mudur? *(`isUnmodifiable()` ile test ederek kontrol edebiliriz)*
+- Testlerde TOMSP kodlu müşterinin henüz `DRAFT` durumundaki siparişi de gelir hesaplamasına *(revenue)* dahil ediliyor. Onaylanmamış bir sipariş gelir hesaplamasında dahil edilmeli midir yoksa burada farklı bir iş kuralı söz konusu olabilir. Eğer bir iş kuralı söz konusuysa OrderBook sınıfında mı tanımlanmalıdır yoksa `OrderStatus` enum'ına `isBillable()` gibi bir metot olarak mı eklenmelidir?
+- `add` metodu her eklemede `findById` çağırarak tüm listeyi tarıyor. Peki 100.000 siparişi tek tek eklemenin zaman karmaşıklığı değeri *(Big O açısından)* ne olabilir? Dahili veri yapısı olarak `List<Order>` yerine örneğin `Map<Integer, Order>` *(veya `LinkedHashMap`)* kullanırsak hangi sorguları hızlandırır, hangilerini değiştirmez?
+- `totalRevenue` metodunu `parallelStream()` ile de yazabilirdik ama sonuç değişir miydi? `reduce` metodunun doğru çalışması için başlangıç değerinin *(identity)* ve toplama fonksiyonunun *(associativity)* hangi koşulları sağlaması gerekir? `Money::plus` farklı para birimleri karşısında bu koşulları sağlar mı? *(Paralel stream'lerin hangi durumlarda performansı artırıp hangilerinde düşürdüğünü araştırmakta yarar var)*
+- `findByCustomer` siparişleri `orderDate`'e göre sıralıyor. Buna göre aynı müşterinin aynı gün verdiği iki sipariş hangi sırayla gelir? `topCustomers` metodunda iki müşterinin geliri eşitse sonuç her çalıştırmada aynı olur mu? Sonuçların deterministik olması sağlamak için `Comparator.thenComparing` nasıl kullanılabilir?
+- `findById` Optional döner, `getById` ise bulamadığında exception fırlatır. Spring Data JPA'daki `findById`, `getById` ve `getReferenceById` metotlarını araştırın. `getById` neden deprecated oldu? `find` / `get` ayrımı bir standart olarak kabul edilebilir mi?
+- Stream API ve .NET tarafındaki LINQ arasındaki temel farklar nelerdir? Örneğin .NET tarafında `IEnumerable` sorgusu birden fazla kez çalıştırılabilirken Java'da stream neden tek kullanımlıktır? LINQ'teki deferred execution ile Stream'deki lazy evaluation aynı şey midir? Rust iterator'ları bu karşılaştırmada nereye oturur?
