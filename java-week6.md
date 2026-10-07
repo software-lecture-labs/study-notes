@@ -87,12 +87,73 @@ Merkezde yer alan domain katmanı hiçbir yere bağımlı değildir. Tüm bağı
 
 ### Dikey Dilim Mimari *(Vertical Slice Architecture)*
 
-EKLENECEK
+Kodu teknik katmanlara göre değil de, işlevsel bir özelliğe göre *(use case, feature)* bölmeyi öneren bir yaklaşımdır. Her dilim *(slice)* bir talebin uçtan uca tüm kodunu *(endpoint, doğrulama, iş mantığı, veri erişimi)* bir arada tutar. Bu sayede dilimler arası bağımlılıklar azalır ki özellikler bağımsız olarak geliştirilebilir ve test edilebilir hale gelir. Kabaca aşağıdaki gibi bir çizimle ifade edilebilir.
+
+![Vertical Slice Architecture](./images/week_06_06.png)
+
+Çizimdeki dikey kesitler klasik katmanları, dikey sütunlar ise dilimleri ifade etmektedir. Bu mimari modele göre yeni bir özellik eklemek aslında tek bir klasör yeni bir dosya eklemek kadar basittir, var olan mevcut dikeyler bundan etkilenmez. Her dikey dilim kendi alanında kendi tekniğini kullanabilir. Sözgelimi basit bir sorgu için doğrudan SQL script çalıştıran bir paket kullanılabilirken, daha karmaşık bir iş mantığı domain modelini baz alan bir komut işletilebilir. Her dikeyin aynı katmanı kullanma zorunluluğu yoktur. Vertical Slice Architecture, çoğu zaman CQRS *(Command Query Responsibility Segregation)* ile birlikte anılır. Buna göre örneğin `Features/Orders/CreateOrder` altında Endpoint, Command, CommandHandler, Validator gibi tüm bileşenler bir arada bulunur.
+
+Tabii bu yapıda tekrarlar ve dağınıklık kaçınılmazdır. Her dikey dilim kendi bağımsız yapısını içerdiği için benzer işlevler farklı dilimlerde tekrar edebilir. Bu yüzden gerçekten paylaşılan kurallar varsa bunları domain modeline çekmek mantıklı bir yaklaşım olacaktır *(DRY - Don't Repeat Yourself)*
 
 ### Modular Monolitik Mimari *(Modular Monolithic Architecture)*
 
-EKLENECEK
+Son yıllarda bu mimari yaklaşım da popülerlik kazanmıştır. Modüler monolitik mimari, tek bir uygulama içinde modüler yapılar oluşturarak, hem monolitik yapının basitliğini hem de mikroservislerin modülerliğini bir arada sunmayı amaçlar. Her modül kendi bağımsız işlevselliğine sahip olup, diğer modüllerle minimum bağımlılıkla çalışır. Aşağıdaki şekilde bu yaklaşım görselleştirilmiştir.
+
+![Modular Monolithic Architecture](./images/week_06_07.png)
+
+Order modülü, sipariş ödemesi için Payment modülüne ihtiyaç duyar ve bunun için ödeme modülünün Public API'sini kullanır. Diğer etkileşimler olay tabanlı iletişimle gerçekleşir ve her modül sadece ve sadece kendi şemasına yazar. Burada modül aslında bounded context olarak düşünülebilir. Sınırlar aynen mikroservislerdeki gibi belirgin ve bağımsızdır. Modüllerin tek bir açık kapısı olur yani dışarıya public API'ler ile *(interface, façade gibi enstrümanlar)* açılırlar. Modüller arası iletişimin bir diğer yoluysa süreç içi olaylar *(domain events)* aracılığıyla gerçekleşir. Tabii burada önemli bir kural da vardır. Diğer modüllerin entity nesnelerine veya tablolarına dokunmak yasaktır. Veritabanı ortaktır ama modüller için ayrı şemalar söz konusudur. Diğer yandan aynı veritabanı kullanılsa da tablolara arası JOIN işlemleri yapılmaz ya da foreign key ile doğrudan bağlanmaz.
+
+Mimarinin ilginç ayrıntılarından birisi de her modülün kendi içinde bağımsız mimari yaklaşımları kullanabilmesidir. Örneğin bir modül Hexagonal Architecture'ı benimserken, başka bir modül Clean Architecture veya Vertical Slice yaklaşımını tercih edebilir. Bu esneklik, modüllerin kendi ihtiyaçlarına göre en uygun yapıyı seçmelerine de olanak tanır.
+
+> İyi ayrılmış bir modül gerçekten bağımsız ölçekleme veya dağıtım gerektirdiğinde servis olarak dışarı çıkabilir. Süreç içi olaylar asenkron mesaj kuyruğuna, public API çağrıları da HTTP/gRCP'ye döner. Dolayısıyla modüler monolitik yapı, mikroservis mimarisine geçiş için de doğal bir adım haline gelir.
+
+Elbette burada da bir takım zorluklar ve dikkat edilmesi gereken noktalar vardır. Örneğin modül sınırları ArchUnit, Spring Modulith gibi araçlarla denetlenmelidir. Aksi takdirde modüller arası bağımlılıklar ve kuralların ihlali **big ball of mud** olarak adlandırılan karmaşık ve yönetilemez bir yapıya yol açabilir. [Big Ball of Mud, Brian Foote, Joseph Yoder, 1997](https://www.cin.ufpe.br/~sugarloafplop/mud.pdf) Zaten modular monolitik yapının amacı monolitik sistemlerin kaçınılmaz olarak bir çamur yığınına dönüşmesini engellemektir.
 
 ## Karar Matrisi
 
-EKLENECEK
+Doğrusu mimarilerin her birinin kendine özgü avantajları ve dezavantajları vardır. Bu nedenle bir projede hangi mimarinin kullanılacağına karar verirken projenin büyüklüğü, karmaşıklığı, ekip yapısı ve uzun vadeli bakım gereksinimleri gibi faktörler göz önünde bulundurulmalıdır. Aşağıdaki tablo belli ölçütlerde karar vermeyi kolaylaştırabilir.
+
+| **Mimari** | **Neyi Böler?** | **Bağımlılık Yönü** | **En Büyük Avantajı** | **En Büyük Maliyeti** | **Hangi Konsept** |
+| --- | --- | --- | --- | --- | --- |
+| **Katmanlı *(N-Tier)*** | Teknik sorumluluğu yatay katmanlara böler | Yukarıdan aşağıya | Basit ve anlaşılır yapı | İş mantığı altyapıya bağımlıdır | Küçük-Orta CRUD projeleri |
+| **SOA** | Kurumsal iş yeteneklerini servisler aracılığıyla böler | Servislerden ESB'ye | Heterojen sistem entegrasyonu kolaylığı | ESB darboğazı, ağır standartlar | Büyük kurumlar, eski sistemler |
+| **Mikroservis** | Bounded Context (dikey fiziksel) olarak böler | Servisler arası API/Event tabanlı | Bağımsız dağıtım ve ölçeklenebilirlik | Dağıtık sistem karmaşıklığı | Kalabalık ekipler ama net domain sınırları |
+| **Hexagonal** | Çekirdek ve dış dünya arasındaki bağımlılıkları böler | Dıştan içe portlarla | Test edilebilirlik, teknoloji bağımsızlığı | Arayüz ve mapping karmaşıklığı | Çok sayıda entegrasyon gerektiren projeler |
+| **Clean/Onion** | Eş merkezli katmanlarla çekirdeği dış bağımlılıklardan ayırır | Dıştan içe | Domain'in korunması | Proje sayısının artmasıyla karmaşıklık | Uzun ömürlü, iş kuralları yoğun sistemler |
+| **Vertical Slice** | Özelliğe/senaryoya göre dikey dilimlere böler | Dikey dilim içinde bağımsız | Yeni özellik eklemek basit ve izole | Tekrarlayan kod ve dağınıklık | Feature odaklı hızlı gelişen ürünler |
+| **Modüler Monolitik** | Tek bir uygulama içinde bağımsız modüllere böler *(Dikey, mantıksal bounded context)* | Modüller arası public API, olay tabanlı iletişim | Net sınırlara sahip ve tek parça deployment | Modül sınırları test edilmezse aşınır | 1-5 ekipli projeler, yeni ürünler ve mikroservis geçişi planlayan projeler |
+
+Dolayısıyla karar verirken şu soruları sormak faydalı olacaktır:
+
+- Aynı kod tabanında kaç ekip çalışıyor ve birbirlerini bekliyorlar mı?
+- Domain sınırları net mi yoksa keşfedilmesi mi gerekiyor?
+- Sistemin farklı parçaları farklı yük altında mı çalışacak?
+- CI/CD, izleme ve konteyner altyapısı hazır mı ve etkin bir şekilde kullanılacak mı?
+- İş kuralları karmaşık mı yoksa CRUD *(Create, Read, Update, Delete)* operasyonları gibi uygulama ağırlıklı mı?
+
+---
+
+## Bölüm Soruları
+
+Yazılım mimarilerini teorik olarak öğrenmek pek kolay değildir. Gerçek hayat senaryolarında yaşanan birçok durum teorik bilgilerin ötesinde pratik deneyim gerektirir. Bu nedenle, farklı mimarilerin avantajlarını ve dezavantajlarını anlamak için gerçek projelerde uygulama yapmak oldukça önemlidir. Yine de yukarıdaki bilgiler ışığında aşağıdaki sorular tartışılabilir.
+
+1. Üç kişilik bir ekip yeni bir SaaS *(Software as a Service)* ürününe mikroservis mimarisi ile başlayabilir mi?
+2. Katmanlı bir uygulamayı Clean Architecture'a taşırken ilk olarak hangi bağımlılığı ters çevirirsiniz *(Dependency Inversion Principle)*?
+3. Vertical Slice ve mikroservis yaklaşımları arasındaki benzerlik ve fark nedir?
+4. Hexagonal ve Clean/Onion mimarileri arasındaki temel farklar nelerdir?
+5. *Fallacies of distributed computing* neyi ifade eder ve neden önemlidir?
+
+## Karşılıklar Tablosu
+
+| **Konu** | **.NET Karşılığı** | **Java Karşılığı** |
+| --- | --- | --- |
+| Web/Application Framework | ASP.NET Core | Spring Boot, Quarkus, Micronaut, Jakarta EE |
+| ORM/Data Access | Entity Framework Core, Dapper | JPA/Hibernate, Spring Data, jOOQ, JdbcTemplate |
+| Module/Layer Boundary | csproj + project ref, internal | Maven/Gradle, JPMS, package-private |
+| Architecture Tests | NetArchTest, ArchUnit | ArchUnit, jMolecules |
+| Modular Monolith Support | N/A | Spring Modulith |
+| CQRS/mediator | MediatR, Wolverine | Axon Framework, Spring ApplicationEventPublisher |
+| Microservice Infrastructure | YARP, Ocelot, .NET Aspire | Spring Cloud, Eureka |
+| Resilience *(Circuit Breaker, Retry, Timeout)* | Polly | Resilience4j |
+| Messaging | MassTransit, RabbitMQ, Azure Service Bus | Spring AMQP, Spring Kafka, Apache Camel |
+| SOA/ESB Architecture | WCF *(Legacy)*, BizTalk | JAX-WS, Apache Camel, MuleSoft, WSO2 |
