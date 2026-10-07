@@ -51,15 +51,39 @@ SOA, çok sayıda eski ve hazır sistemin entegre edilmesi gerektiği durumlarda
 
 ### Mikroservis Mimarisi *(Microservices Architecture)*
 
-EKLENECEK
+Madem SOA'ya değindik öyleyse onun felsefesini uygulayan ve sıklıkla karıştırılan mikroservis mimarisine de bir bakalım. Bu mimaride sistem, her biri tek bir iş yeteneğine odaklanmış *(bounded context)*, diğerlerinden bağımsız şekilde dağıtılabilen *(independently deployable)* ve kendi veritabanını kullanan servislere bölünür. Küçük servisler olarak ifade edilirler zira her biri tek bir iş yeteneğini kapsar ve sorumlulukları nettir. Buradaki avantaj bağımsız yayınlama ve ölçeklendirme imkanıdır. Her servis kendi yaşam döngüsüne sahiptir ve diğer servislerden bağımsız olarak güncellenebilir veya yeniden dağıtılabilir. Lakin bunun da bir dezavantajı vardır; sistemin karmaşıklığı artar ve servisler arası iletişim maliyetleri yükselir. Bunu çok da yabana atmamak gerekir. Başlangıçta oldukça makul görünen çözüm binlerce servisin yönetilmesi gerektiğinde ciddi bir karmaşıklığa dönüşebilir. Mimariyi kabaca aşağıdaki görselle özetleyebiliriz.
+
+![Microservices Architecture](./images/week_06_03.png)
+
+Buradaki servisler sistemin kalanı ile event bazlı bir haberleşme kurar. Burada asenkron bir olay akışı söz konusudur. Örneğin bir ödeme alınması durumunda ilgili servis bir "ödeme alındı" olayı yayınlar ve bu olaya abone olan diğer servisler gerekli işlemleri gerçekleştirir.
+
+Servisler kendi veritabanlarına sahiptir ve diğlerinin tablolarında doğrudan erişemez, sorgu atamazlar. Eğer diğer bir servisin verisine ihtiyaç varsa bunun yolları bellidir. Ya bir API noktası ya da bir event ile. *(Bazı vakalarda aynı veritabanını kullanan servisler de görülür ve bu genellikle dağıtık monolit olarak adlandırılır.)* Servis sınırları aslında iş alanlarıyla paraleldir ve her servis kendi iş yeteneğini kapsar. Bu sınırları teknik bir katman olarak düşünmemek doğrudur. Çizimdeki servisler ile olan iletişim günümüz standartlarında birçok şekilde yapılabilir. REST en popülerlerinden birisi olsa da bazı durumlarda yüksek performans ve `HTTP/2` avantajları nedeniyle gRPC gibi protokoller de tercih edilebilir.
+
+Mikro servis ve SOA gibi mimariler aslında dağıtık sistemlerin odak alanına girerler. Dağıtık sistemlerde veri tutarlılığı, ağ gecikmeleri, hata toleransı gibi konular da ön plana çıkar. Özellikle mikro servis mimarisinde veri tutarlılığı nihai *(eventual)* olarak sağlanır. Dağıtık transaction yönetimi SAGA, Outbox pattern gibi yaklaşımlarla yönetilir ancak uygulaması karmaşıklık ve dikkat gerektirir.
+
+> Dağıtık sistemlerin güçlüklerini anlamanın en iyi yolu, L. Peter Deutsch'un "Fallacies of distributed computing" maddelerini incelemekten geçer. [Fallacies of distributed computing](https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing)
+
+Bağımsız olarak dağıtılabilen sayısız servis `CI/CD` süreçlerini de zorlaştırabilir. Ayrıca container orkestrasyonu, merkezi loglama, dağıtık izleme *(tracing)*, servis keşfi *(service discovery)*, devre kesme *(circuit breaking)* gibi birçok kavram da işin içerisine girer. Dolayısıyla küçük ekiplerde, domain sınırlarının belirsiz olduğu senaryolarda ve özellike MVP aşamalarında tercih edilmesi doğru olmayabilir. Çoğu durumda en iyi başlangıç monolit bir mimari ile yapılır ve sistem olgunlaştıkça mikro servis mimarisine geçiş düşünülebilir *(Geçiş yapmak da ayrı bir beceri gerektirebilir, sırf bunun için özel patternler ve stratejiler vardır; örneğin Strangler Fig pattern)*.
 
 ### Hexagonal Mimari *(Ports and Adapters)*
 
-EKLENECEK
+Hexagonal mimari, uygulamanın iş mantığını dış dünyadan ayırmayı amaçlar. Bu mimaride uygulama merkezi bir çekirdek olarak tasarlanır ve dış dünya ile olan iletişim portlar ve adaptörler aracılığıyla sağlanır. Portlar, uygulamanın ihtiyaç duyduğu işlevleri tanımlar ve adaptörler bu portları gerçek dünyadaki teknolojilere bağlar. Bu sayede iş mantığı, veri tabanı, kullanıcı arayüzü veya üçüncü taraf servislerden bağımsız hale gelir. Mimariyi kabaca aşağıdaki görselle özetleyebiliriz.
+
+![Hexagonal Architecture](./images/week_06_04.png)
+
+Uygulama çekirdeği yalnızca kendi tanımladığı portları *(arayüzler olarak düşünebiliriz)* bilir. Veritabanı, kullanıcı arayüzü *(User Interface)*, mesaj kuyruğu *(Message Queue)* gibi dış dünya bileşenler bu portlara takılan adaptörlerdir. Şekildeki Driving ve driven kavramlarını şöyle de ifade edebiliriz; sol taraftakiler uygulamayı sürenler, sağ taraftakiler ise uygulamanın sürdükleridir. Interface gibi türler üzerinden tanımlanan portlar çekirdeğe ait ve genellikle domain ya da application projelerinde tanımlanırlar. Arayüz implementasyonu altyapı *(infrastructure)* projesinde gerçekleştirilir. Burada esas Dependency Inversion prensibinin mimari ölçekte uygulanmasıdır. Katmanlı mimaride gördüğümüz gibi alt üst katman gibi bir kavram yerine iç ve dış diye bir kavram vardır *(Katmanlı mimaride belirttiğimiz `iş mantığı veritabanına bağımlıdır` sorunu burada tersine çevrilir)*. SOA ve mikroservis mimarilerinde olduğu gibi test edilebilirlik burada en büyük kazanımlardan birisidir ama daha da önemlisi bu kurguya göre teknoloji değişimi adaptör değişimidir. Dolayısıyla SQL Server'dan örneğin PostgreSQL'e geçmek çekirdeğe dokunmadan mümkündür *(yine de soyutlamalarda olası sızıntılara dikkat etmek gerekir)*.
 
 ### Onion/ Clean Architecture *(Onion/ Clean Architecture)*
 
-EKLENECEK
+Clean Architecture, Onion Architecture ve Hexagonal Architecture genelde birbirleri ile içiçe geçebilen kavramlardır. Karıştırılabilirler. Aslında üçü de aynı fikrin farklı çizimleri gibi de yorumlanabilirler. Ortak olan noktaları ise bağımlılık ilkelerini tersine çevirmeleri ve iş mantığını dış dünya bağımlılıklarından izole etmeleridir. Biz genel bir halka modeli olarak yaklaşıp bağımlılıkların yönünü de göz önüne alarak aşağıdaki gibi bir şemayı tartışabiliriz.
+
+![Onion Architecture](./images/week_06_05.png)
+
+Merkezde yer alan domain katmanı hiçbir yere bağımlı değildir. Tüm bağımlılıklar halkaların en dışından merkeze doğru yönelir. Bu sayede iş mantığı, veri tabanı, kullanıcı arayüzü veya üçüncü taraf servislerden bağımsız hale gelir ve test edilebilirlik artar. Dış katmanlar ise iç katmanlara bağımlıdır ve iç katmanların tanımladığı arayüzleri implement ederler. Bu kurguda framework sadece bir detaydır. Spring, Hibernate en dış halkada konumlanırlar ve gerektiğinde kolayca değiştirilebilirler. Domain katmanı bu halkadakileri bilmez ve bilmek zorunda da değildir.
+
+> **Screaming Architecture** Projenin klasör yapısına bakıldığında iş mantığının ve domain modelinin hemen göze çarpması gerektiğini savunan bir tasarım felsefesidir. Yani klasör yapısı, projenin asıl amacını ve iş mantığını "bağırır" olmalıdır. Örneğin bu bir MVC uygulaması demek yerine bir araç kiralama sistemidir diyebilmeliyiz.
+
+Şekilde dört halka kullandık ama bu şart değildir. Kural, bağımlılıkların yönüdür. Diğer yandan bu mimarinin de bazı zayıf tarafları vardır. Bunlardan en önemlisi küçük projelerde bile çok sayıda soyutlama ve arayüz gerektirebilmesidir. Bir noktada `over-engineering` sorununa yol açabilir.
 
 ### Dikey Dilim Mimari *(Vertical Slice Architecture)*
 
