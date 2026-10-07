@@ -20,7 +20,22 @@ Bu derste yüzeysel olarak ele alacağımız mimarileri tarihsel gelişimleri a�
 
 ### Katmanlı Mimarisi (Layered Architecture / N-Tier)
 
-EKLENECEK
+Yazılımla tanışan herkesin büyük ihtimalle ilk öğrendiği veya çalıştığı mimari türü olarak düşünülebilir. Uygulama kodu sorumluluklarına göre yatay katmanlara bölünü ve her katman yalnızca bir altındaki katmanı çağırır. Öğrenimi kolay olan bu mimari, küçük ve orta ölçekli projelerde oldukça etkilidir. Ancak katmanlar arası bağımlılıklar arttıkça değişikliklerin etkisi de büyüyebilir, bu nedenle dikkatli tasarım gerektirir. Genellikle 3-Tier veya 5-Tier olarak karşımıza çıkar.
+
+- **3-Tier:** Presentation katmanı (UI) -> Business Logic katmanı (iş mantığı) -> Data Access katmanı (veri erişimi) -> Veritabanı (Database)
+- **5-Tier:** Presentation katmanı (UI) -> Application katmanı (Service, API gibi) -> Business Logic katmanı (iş mantığı, domain kuralları) -> Data Access katmanı (veri erişimi) -> Veritabanı (Database)
+
+![Layered architecture](./images/week_06_01.png)
+
+Kabaca yukarıdaki görselde olduğu gibi tarifleyebiliriz. Burada **layer** ve **tier** kavramlarını birbirine karıştırmamak gerekir. **Layer**, yazılımın sorumluluklarına göre ayrılmış mantıksal bir bölümü ifade ederken, **tier**, fiziksel olarak ayrılmış bir katmanı ifade eder. Söz gelimi 3 katmanlı bir mimari tasarım tek bir fiziksel sunucuda çalışabilir ve bu durumda tek bir tier olarak kabul edilir. Tier'ı ağ sınırı olarak da düşünebiliriz. Dolayısıyla bir mimari tasarımda katman sayısı ile tier sayısı her zaman aynı olmak zorunda değildir.
+
+Bir diğer önemli mesele de katmanlar arası bağların katı *(strict)* ya da gevşek *(relaxed)* olmasıdır. Katı bağ, bir katmanın yalnızca bir alt katmanı çağırabilmesini ve doğrudan diğer katmanlara erişememesini ifade eder. Gevşek bağda ise katmanlar arasında daha fazla adım atlamak mümkündür fakat bu bağımlılıkların süratle dağılmasına da sebebiyet verir. Bazen derleme zamanı kontrolleri veya çeşitli testlerle bu kaçaklar bilhassa engellenir *(ArcUnit konusu ve ADR kavramlarını araştıralım)*
+
+Bu mimaride bağımlılıklar yukarıdan aşağıya doğru iner. Yani iş mantığı veritabanına bağımlıdır. Clean Architecture veya Hexagonal Architecture gibi modern yaklaşımlarda ise bağımlılıklar tersine çevrilir ve iş mantığı altyapı detaylarından bağımsız hale getirilir. Yani katmanlı mimaride zayıflık olarak görülen bu bağımlılık ilkesi diğer mimariler için bir avantaj haline gelir.
+
+Dikkat edilmesi gereken noktalardan birisi de **Sinkhole Anti-Pattern**'dir. İsteklerin çoğu katmanlardan geçerken hiçbir iş yapılmıyorsa *(yani alt katman geriye sadece bir çağrı sonucu dönüyorsa)* katmanların maliyet ürettiği söylenir. Eğer bu durum yüzdesel olarak 20'yi geçiyorsa mimariyi gözden geçirmek ve gereksiz katmanları ortadan kaldırmak faydalı olabilir *(Ref: [O'Reilly, Software Architecture Patterns](https://www.oreilly.com/content/software-architecture-patterns/))*
+
+Uygulaması kolay bir mimari olsa da başta da belirttiğim gibi her mimarinin bazı trade-off'ları vardır. Bu yaklaşımda basit bir özellik eklemek *(Örneğin siparişlere not eklenmesi)* tüm katmanlarda değişiklik yapılmasını gerektirebilir ve değişiklik ufak olsa bile yeniden tüm tier'ın deploy edilmesini zorunlu kılabilir. Bu durum özellikle büyük ve dağıtık sistemlerde operasyonel maliyetleri artırabilir. Örneğin bu zayıflık Vertical Slice Architecture'ın ortaya çıkmasına da vesile olmuştur.
 
 ### Servis Odalı Mimari (SOA - Service Oriented Architecture)
 
