@@ -37,27 +37,35 @@ Dikkat edilmesi gereken noktalardan birisi de **Sinkhole Anti-Pattern**'dir. İs
 
 Uygulaması kolay bir mimari olsa da başta da belirttiğim gibi her mimarinin bazı trade-off'ları vardır. Bu yaklaşımda basit bir özellik eklemek *(Örneğin siparişlere not eklenmesi)* tüm katmanlarda değişiklik yapılmasını gerektirebilir ve değişiklik ufak olsa bile yeniden tüm tier'ın deploy edilmesini zorunlu kılabilir. Bu durum özellikle büyük ve dağıtık sistemlerde operasyonel maliyetleri artırabilir. Örneğin bu zayıflık Vertical Slice Architecture'ın ortaya çıkmasına da vesile olmuştur.
 
-### Servis Odalı Mimari (SOA - Service Oriented Architecture)
+### Servis Odalı Mimari *(SOA - Service Oriented Architecture)*
+
+Kurumun iş yetenekleri etrafında organize edilen ve bu yetenekleri destekleyen servislerin bir araya gelmesiyle oluşan bir mimari yaklaşımdır. SOA'da servisler genellikle birbirinden bağımsızdır ve belirli iş süreçlerini yerine getirir. Bu servisler genellikle Enterprise Service Bus (ESB) gibi bir altyapı üzerinden konuşur. Amaç kurum genelinde yeniden kullanım ve entegrasyonu sağlamaktır. Aşağıdaki görsel kabaca mimarinin temel parçalarını göstermektedir.
+
+![Service Oriented Architecture](./images/week_06_02.png)
+
+Servisler aynı veritabanını paylaştıkları için görünmez bir biçimde birbirlerine bağlıdırlar. Servisler sözleşme bazlıdır *(contract-first)*. Buna göre çoğunlukla WSDL/XSD gibi resmi sözleşme standartları söz konususur. Genellikle SOAP *(Simple Object Access Protocol)* veya REST *(Representational State Transfer)* protokolleri kullanılır. Bu kurguda tüm trafik ESB hattı üzerinden geçer. ESB'nin birçok görevi olur. Mesajların yönlendirilmesi, mesaj içeriklerini farklı formatlara çevrilmesi veya değiştirilmesi, protokol geçişleri gibi işlemler ESB tarafından yönetilir. En önemli avantaj eski sistemlerin *(mainframe'ler, paket yazılımlar vs)* organizasyonun kalanıyla tek bir çatı altında konuşturabilmesidir. Pek tabii bu mimarinin de güçlü ve zayıf yönleri vardır. Örneğin zamanla biriken iş mantığı *(business logic)* tek bir ekipde toplanabilir ve tek hata noktası ile darboğaz riski oluşturabilir.
+
+> SOA aslında bir felsefe sunar ve mikro servis mimarisi aslında bu felsefenin bir uygulamasıdır. SOA ve Microservice üzerine referans için [Martin Fowler - Microservices](https://martinfowler.com/articles/microservices.html) makalesine göz atabilirsiniz.
+
+SOA, çok sayıda eski ve hazır sistemin entegre edilmesi gerektiği durumlarda tercih edilen bir yaklaşımdır. Bu nedenle bankacılık, telekom ve kamu sektöründe sıkça kullanılır.
+
+### Mikroservis Mimarisi *(Microservices Architecture)*
 
 EKLENECEK
 
-### Mikroservis Mimarisi (Microservices Architecture)
+### Hexagonal Mimari *(Ports and Adapters)*
 
 EKLENECEK
 
-### Hexagonal Mimari (Ports and Adapters)
+### Onion/ Clean Architecture *(Onion/ Clean Architecture)*
 
 EKLENECEK
 
-### Onion/ Clean Architecture
+### Dikey Dilim Mimari *(Vertical Slice Architecture)*
 
 EKLENECEK
 
-### Dikey Dilim Mimari (Vertical Slice Architecture)
-
-EKLENECEK
-
-### Modular Monolitik Mimari (Modular Monolithic Architecture)
+### Modular Monolitik Mimari *(Modular Monolithic Architecture)*
 
 EKLENECEK
 
