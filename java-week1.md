@@ -306,3 +306,17 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabil
 - İş kurallarını hiçbir bağımlılık olmadan nesnenin kendi tasarımında tutmayı hedefledik. Customer sınıfına `@Entity`, `@Column` gibi JPA anotasyonları eklemek bu ilkeyi bozar mı?
 - `main` metodundaki `catch` bloğu boş bırakılmış. Exception'ı yutmanın *(swallowing)* üretim ortamında ne gibi sonuçları olabilir?
 - Sürüm tag'lerinde `v2026.09.2` gibi tarih bazlı bir format kullandık. CalVer *(Calendar Versioning)* ile SemVer *(Semantic Versioning)* yaklaşımlarını araştıralım. Bir kütüphane ile bir son kullanıcı uygulaması için hangisi daha uygun olabilir tartışalım.
+
+---
+
+## Bu bölümün kodu
+
+Bu bölümdeki iki aşama iki ayrı modülde donmuş durumda:
+
+- [`src/week01-step1-pojo-customer`](src/week01-step1-pojo-customer) — setter'lı, doğrulamasız `Customer`
+- [`src/week01-step2-immutable-customer`](src/week01-step2-immutable-customer) — `final` alanlı, kurucuda doğrulayan `Customer`
+
+```powershell
+cd src
+mvn -pl week01-step1-pojo-customer -am test
+```

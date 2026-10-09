@@ -770,3 +770,14 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıda bulabilir
 - Test metotlarının isimlendirmesinde `@DisplayName` anotasyonundan yararlandık. *Given-When-Then* veya *Arrange-Act-Assert* yapılarını araştıralım ve mevcut testlerden herhangi birini bu yapıya göre yeniden düzenleyelim.
 - `pom.xml` dosyasında bağımlılıklar `test` scope ile eklendi. Bu scope'un anlamı nedir? `maven-surefire-plugin` ne işe yarar ve `mvn test` komutu hangi Maven yaşam döngüsü *(lifecycle)* adımlarını çalıştırır?
 - Tüm testlerin yeşil olması kodun doğru olduğu anlamına gelir mi? Code coverage *(JaCoCo)* ve mutation testing *(PIT)* kavramlarına bir bakalım. Örneğin mutation testing, Order sınıfındaki eksik testleri ortaya çıkarabilir mi?
+
+---
+
+## Bu bölümün kodu
+
+[`src/week04-aggregate-and-state-machine`](src/week04-aggregate-and-state-machine)
+
+```powershell
+cd src
+mvn -pl week04-aggregate-and-state-machine -am test
+```
