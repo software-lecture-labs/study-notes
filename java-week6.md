@@ -157,3 +157,9 @@ Yazılım mimarilerini teorik olarak öğrenmek pek kolay değildir. Gerçek hay
 | Resilience *(Circuit Breaker, Retry, Timeout)* | Polly | Resilience4j |
 | Messaging | MassTransit, RabbitMQ, Azure Service Bus | Spring AMQP, Spring Kafka, Apache Camel |
 | SOA/ESB Architecture | WCF *(Legacy)*, BizTalk | JAX-WS, Apache Camel, MuleSoft, WSO2 |
+
+---
+
+## Bu bölümün kodu
+
+Bu bölüm mimari karşılaştırmaları üzerine ve Java kodu içermiyor; bu yüzden `src` altında bir modülü yok. Bölüm - modül eşlemesinin tamamı için [`src/README.md`](src/README.md).

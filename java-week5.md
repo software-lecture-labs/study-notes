@@ -578,3 +578,14 @@ Bu dersle ilgili olarak bizi araştırmaya konuları aşağıda bulabilirsiniz.
 - `findByCustomer` siparişleri `orderDate`'e göre sıralıyor. Buna göre aynı müşterinin aynı gün verdiği iki sipariş hangi sırayla gelir? `topCustomers` metodunda iki müşterinin geliri eşitse sonuç her çalıştırmada aynı olur mu? Sonuçların deterministik olması sağlamak için `Comparator.thenComparing` nasıl kullanılabilir?
 - `findById` Optional döner, `getById` ise bulamadığında exception fırlatır. Spring Data JPA'daki `findById`, `getById` ve `getReferenceById` metotlarını araştırın. `getById` neden deprecated oldu? `find` / `get` ayrımı bir standart olarak kabul edilebilir mi?
 - Stream API ve .NET tarafındaki LINQ arasındaki temel farklar nelerdir? Örneğin .NET tarafında `IEnumerable` sorgusu birden fazla kez çalıştırılabilirken Java'da stream neden tek kullanımlıktır? LINQ'teki deferred execution ile Stream'deki lazy evaluation aynı şey midir? Rust iterator'ları bu karşılaştırmada nereye oturur?
+
+---
+
+## Bu bölümün kodu
+
+[`src/week05-optional-and-stream`](src/week05-optional-and-stream)
+
+```powershell
+cd src
+mvn -pl week05-optional-and-stream -am test
+```

@@ -548,3 +548,16 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabil
 - Record'ların `toString`, `equals` ve `hashCode` metotları neden derleme zamanında bytecode olarak gömülmek yerine `invokedynamic` ile çalışma zamanında üretilmekte? JEP 280 *(Indify String Concatenation özelliği)* ile benzer bir motivasyon var mıdır?
 - Bir record JPA *(Java Persistence API)* entity'si olarak kullanılabilir mi? Kullanılamıyorsa record'lar kalıcılık *(persistence)* katmanında hangi rollerde işe yarar?
 - Adres bilgisini her tabloda ayrı kolonlar olarak tutmak ile ayrı bir `addresses` tablosunda tutmak arasındaki tercih, kod tarafındaki değer nesnesi *(Value Object)* tasarımını etkiler mi?
+
+---
+
+## Bu bölümün kodu
+
+[`src/week02-anemic-model-and-records`](src/week02-anemic-model-and-records)
+
+```powershell
+cd src
+mvn -pl week02-anemic-model-and-records -am test
+```
+
+Bölümün sonundaki `invokedynamic` / `ObjectMethods.bootstrap` denemeleri modüle alınmadı; JDK iç API'lerine eriştikleri için jshell üzerinden çalıştırılıyorlar.

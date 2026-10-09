@@ -515,3 +515,14 @@ Tabii dikkat edilmesi gereken birkaç durum da söz konusu. Statik fabrika metot
 ## Factory Metotlarını Kullanmak
 
 // EKLENECEK
+
+---
+
+## Bu bölümün kodu
+
+[`src/week07-object-creation`](src/week07-object-creation)
+
+```powershell
+cd src
+mvn -pl week07-object-creation -am test
+```

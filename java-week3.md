@@ -575,3 +575,14 @@ Bu dersle ilgili olarak bizi araştırmaya itecek soruları aşağıdaki bulabil
 - Kural ihlallerinde bazen `IllegalArgumentException`, bazen `IllegalStateException` fırlatılıyor. Bu ikisinin anlamsal farkı nedir ve hangi durumda hangisini seçmeliyiz?
 - Sipariş onaylandığında stok düşülmesi, müşteriye e-posta gönderilmesi gibi aksiyonlar gerekir. Bu işleri `confirm()` metodunun içine yazmak yerine *Domain Event* *(örneğin `OrderConfirmed`)* yayınlamak ne kazandırır?
 - Order'ı da Money gibi immutable olarak tasarlasaydık *(her `addLine` yeni bir Order döndürseydi)* ne kazanır, ne kaybederdik? Entity'ler için immutability her zaman iyi bir fikir midir?
+
+---
+
+## Bu bölümün kodu
+
+[`src/week03-money-and-rich-entity`](src/week03-money-and-rich-entity)
+
+```powershell
+cd src
+mvn -pl week03-money-and-rich-entity -am test
+```
