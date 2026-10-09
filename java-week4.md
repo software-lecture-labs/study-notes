@@ -1,4 +1,4 @@
-# Hafta 04
+# Hafta 04: Aggregate Sınırları, State Machine ve Domain Exception'lar
 
 İş nesnelerini incelemek için işe Customer tasarımı ile başlamıştık. İlk tasarım birçok kusuru içermekteydi. Elimizdeki materyaller ve kavramlar arttıkça iş nesnelerinin daha sağlam ve güvenilir bir şekilde tasarlanabileceğini fark ediyoruz. Kobay veritabanımız Northwind'in Customers tablosunu ifade edecek sınıf tasarımını yeniden değerlendirelim. Domain kuralına göre her customerın ID bilgisinin 5 karakterden oluşan bir değer olması bekleniyor *(ALFKI, VINET gibi)*. Ayrıca artık bir müşterinin adres bilgisine ait detaylar domain katmanında Address tipi ile ifade edilmekte. Bunlara ek diğer iş kuralları ile birlikte Customer sınıfını bir aggregate olarak ele alabiliriz.
 
@@ -707,6 +707,20 @@ Beklentimiz tüm testlerin yeşil bayrak kaldırmasıdır.
 Benzer şekilde OrderStatus ve Customer sınıfları için de testler yazılmalıdır, deneyin.
 
 ---
+
+## Gün İçinden
+
+Bu derste *(10.09.2026)* aşağıdaki görsel diagramlar üzerinde konuştuk. İlk olarak monolitik bir legacy sistemin katmanlı mimarideki yapısını inceledik. Artılarını ve eksilerini tartıştık.
+
+![Legacy System](./images/week_04_02.png)
+
+Bunun ardından aslında basit bir User Story'den veya vakadan yola çıkarak domain modelinin nasıl şekilenebileceğini inceledik.
+
+![Domain Model](./images/week_04_03.png)
+
+Var olan legacy sistemin modernizasyonu noktasında evrildiği mimari model üzerinde tartışık.
+
+![New Era](./images/week_04_04.png)
 
 ## Sorular
 

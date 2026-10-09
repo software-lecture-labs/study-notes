@@ -1,4 +1,4 @@
-# Hafta 03
+# Hafta 03: Money Value Object ve Rich Entity Tasarımı
 
 Birçok domain hassas sayısal değerlere ihtiya duyar. Örneğin finansal uygulamalarda para birimi değerleri veya bilimsel hesaplamalarda ölçüm sonuçları hassasiyet gerektirir. Programlama dillerinde bu tür hassasiyet isteyen değişkenler double, float, BigDecimal gibi veri tipleri ile ifade edilirler. Ancak parasal değerler için double veya float kullanmak yuvarlama hatalarına yol açabilir. Bu nedenle finansal uygulamalarda genellikle BigDecimal tercih edilir. Bir para birimini sadece BigDecimal ile ifade etmek de çoğu zaman yeterli değildir. Zira bu para biriminin hangi ülkeye ait olduğu veya hangi döviz cinsinden olduğu bilgisi de önemlidir. Farklı para birimlerinden değerleri birbirileriyle toplamak hatadır ve bu bir domain kuralı olarak ele alınmalıdır.
 

@@ -1,4 +1,4 @@
-# Hafta 01
+# Hafta 01: Gitflow ve İlk İş Nesnesi
 
 ## Gitflow Branch Stratejisi
 

@@ -1,4 +1,4 @@
-# Hafta 2
+# Hafta 02: Git Pratikleri, Anemik Model ve Record'lar
 
 Bu hafta ele aldığımız konular ve detayları aşağıda bulabilirsiniz.
 

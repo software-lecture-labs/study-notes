@@ -1,4 +1,4 @@
-# Hafta 05
+# Hafta 05: Optional, Stream API ve Sorgu Tasarımı
 
 Önceki derslerimizde bir müşterinin siparişlerini Customer sınıfında `List<Order>` olarak tutmayacağımızdan bahsetmiştik. Zira bunun bir alan *(field)* değil, bir sorgu *(query)* operasyonu olduğunu savunmuştuk. Bu derste sorguyu yazmaya çalışacağız ve bunu yaparken Optional ile Stream API enstrümanlarını nasıl kullanabileceğimizi öğreneceğiz.
 
