@@ -48,7 +48,6 @@ class OrderBookTest {
     }
 
     @Test
-
     @DisplayName("findById returns the order, or empty — it never returns null")
     void findByIdIsOptional() {
         assertThat(book.findById(10248)).isPresent();

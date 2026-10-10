@@ -144,7 +144,8 @@ class OrderTest {
     void equalitySemantics() {
         Order a = newDraft();
         Order b = newConfirmableDraft();
-        assertThat(a.equals(b));
+        assertThat(a).isEqualTo(b);
+        assertThat(a.hashCode()).isEqualTo(b.hashCode());
         assertThat(Money.tl("18.6")).isEqualTo(Money.tl("18.60"));
     }
 }

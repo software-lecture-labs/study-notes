@@ -154,7 +154,7 @@ public final class Order {
         if (!(other instanceof Order order)) {
             return false;
         }
-        return orderId == order.orderId;
+        return orderId.equals(order.orderId);
     }
 
     @Override
