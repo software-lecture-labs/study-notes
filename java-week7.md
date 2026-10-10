@@ -342,7 +342,7 @@ public final class Order {
         if (!(other instanceof Order order)) {
             return false;
         }
-        return orderId == order.orderId;
+        return orderId.equals(order.orderId);
     }
 
     @Override
@@ -611,6 +611,280 @@ Daha önceden Order sınıfını tasarlarken Customer sınıfını referans olar
 
 Kodda değerlendirdiğimiz Clock tipi gerçekten bir bağımlılıktır. `LocalDate.now()` yazdığımızda bu tip kullanım içeren testler de o günkü tarihi ele alıp çalışır, bu da testlerin deterministik olmasını zorlaştırır. `Clock.fixed()` kullanarak sabit bir tarih belirleyebilir ve testlerin her zaman aynı sonucu vermesini sağlayabiliriz *(İlerleyen bölümlerde bu bağımlılığı `@Inject` anotasyonu ile nasıl sağlayabileceğimizi göreceğiz)*.
 
+## Builder Kullanarak Nesne Yaratımı
+
+Hatırlayacağınız üzere asıl repository nesneleri öncesi bir hazırlık mahiyetinde OrderBook sınıfı ile de çalışmıştık. Temelde dahili tuttuğu in-memory koleksiyona sipariş ekleme ve sorgulama işlemlerini gerçekleştiriyordu. Birde bu sınıfa ait fonksiyonellikler için yazdığımız birim test sınıfı vardı. Şimdi, OrderBookTest sınıfı içerisindeki yardımcı draft metoduna odaklanalım.
+
+```java
+private Order draft(OrderId orderId, CustomerId customerId, String unitPrice, int quantity) {
+    Order order = new Order(orderId, customerId, LocalDate.of(1996, 7, 4));
+    order.addLine(11, Money.tl(unitPrice), quantity, NO_DISCOUNT);
+    order.shipTo(REIMS);
+    return order;
+}
+```
+
+Testler için kullanabileceğimiz şekilde bir Order nesnesi örnekliyor ve ona bir sipariş kalemi ekleyerek bir adrese gönderim bilgisi atıyor. Bu sayede testlerimizde her seferinde aynı başlangıç durumuna sahip Order nesneleri yaratabiliyoruz. Ancak yeni bir sipariş satırı daha eklemek istersek ya da sipariş iptal durumu için bir hazırlık yapmak istersek, draft metodunu her seferinde değiştirmek zorunda kalacağız ki bu da test kodunu bakımını zorlaştırır. Bu nedenle test tarafındaki operasyonu kolaylaştırmak için bir Builder sınıfı kullanabiliriz. Tasarlayacağımız bu sınıf sadece birim testlerimiz için kullanacağımız bir yardımcı olacağından onu test paketi altında tutacağız.
+
+```java
+import com.lectures.business.design.domain.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class OrderBuilder {
+
+    private static final Address DEFAULT_DESTINATION = new Address("59 rue de l'Abbaye", "Reims", "51100", "France");
+    private static final LocalDate DEFAULT_DATE = LocalDate.of(1996, 7, 4);
+
+    private record LineSpec(int productId, Money unitPrice, int quantity, BigDecimal discount) {
+
+    }
+    private OrderId orderId = OrderId.of(10248);
+    private CustomerId customerId = CustomerId.of("VINET");
+    private LocalDate orderDate = DEFAULT_DATE;
+    private Address destination = DEFAULT_DESTINATION;
+    private OrderStatus target = OrderStatus.DRAFT;
+    private final List<LineSpec> lines = new ArrayList<>();
+
+    private OrderBuilder() {
+
+    }
+
+    public static OrderBuilder anOrder() {
+        return new OrderBuilder();
+    }
+
+    public OrderBuilder withId(int value) {
+        orderId = OrderId.of(value);
+        return this;
+    }
+
+    public OrderBuilder forCustomer(String value) {
+        customerId = CustomerId.of(value);
+        return this;
+    }
+
+    public OrderBuilder orderedOn(LocalDate date) {
+        orderDate = date;
+        return this;
+    }
+
+    public OrderBuilder shippingTo(Address address) {
+        destination = address;
+        return this;
+    }
+
+    public OrderBuilder withLine(int productId, String unitPrice, int quantity) {
+        lines.add(new LineSpec(productId, Money.tl(unitPrice), quantity, BigDecimal.ZERO));
+        return this;
+    }
+
+    public OrderBuilder withDiscountedLine(int productId, String unitPrice, int quantity, String discount) {
+        lines.add(new LineSpec(productId, Money.tl(unitPrice), quantity, new BigDecimal(discount)));
+        return this;
+    }
+
+    public OrderBuilder confirmed() {
+        target = OrderStatus.CONFIRMED;
+        return this;
+    }
+
+    public OrderBuilder shipped() {
+        target = OrderStatus.SHIPPED;
+        return this;
+    }
+
+    public OrderBuilder cancelled() {
+        target = OrderStatus.CANCELLED;
+        return this;
+    }
+
+    public Order build() {
+        Order order = new Order(orderId, customerId, orderDate);
+        order.shipTo(destination);
+        for (LineSpec line : lines) {
+            order.addLine(line.productId(), line.unitPrice(), line.quantity(), line.discount());
+        }
+        return advance(order);
+    }
+
+    private Order advance(Order order) {
+        switch (target) {
+            case DRAFT -> {
+            }
+            case CANCELLED ->
+                order.cancel();
+            case CONFIRMED ->
+                order.confirm();
+            case SHIPPED -> {
+                order.confirm();
+                order.ship(orderDate.plusDays(12));
+            }
+        }
+        return order;
+    }
+}
+```
+
+Bu sınıfı dikkatlice inceleyelim. Öncelikle varsayılan yapıcının private olduğunu ve doğrudan erişilemediğini görüyoruz. Bunun yerine, `anOrder()` adlı statik yapıcı metodunu kullanarak bir OrderBuilder örneği oluşturuyoruz. Sonrasında çağırılabilecek olan tüm public metotlar geriye yine OrderBuilder nesne örneğini döndürüyor. Bu sayede bir metot zinciri oluşturarak sipariş bilgilerini adım adım doldurmak mümkün. Örneğin;
+
+```java
+Order order = OrderBuilder.anOrder()
+    .withId(10248)
+    .forCustomer("VINET")
+    .orderedOn(LocalDate.of(1996, 7, 4))
+    .shippingTo(new Address("59 rue de l'Abbaye", "Reims", "51100", "France"))
+    .withLine(11, "14.00", 12)
+    .withDiscountedLine(42, "9.80", 10, "0.10")
+    .confirmed()
+    .shipped()
+    .build();
+```
+
+Dolayısıya OrderBookTest sınıfında da OrderBuilder'ı kullanarak sipariş nesnelerini oluşturabiliriz. Bu sayede testlerimizde siparişlerin farklı durumlarını ve içeriklerini kolayca simüle edebiliriz.
+
+```java
+class OrderBookTest {
+
+    private OrderBook book;
+
+    @BeforeEach
+    void setUp() {
+        book = new OrderBook();
+        book.add(OrderBuilder.anOrder()
+                .withId(10248).forCustomer("VINET")
+                .withLine(11, "14.00", 10)
+                .shipped().build());                              
+        book.add(OrderBuilder.anOrder()
+                .withId(10249).forCustomer("VINET")
+                .withLine(11, "10.00", 3)
+                .confirmed().build());
+        book.add(OrderBuilder.anOrder()
+                .withId(10250).forCustomer("TOMSP")
+                .withLine(11, "99.00", 5)
+                .cancelled().build());
+        book.add(OrderBuilder.anOrder()
+                .withId(10251).forCustomer("TOMSP")
+                .withLine(11, "20.00", 4)
+                .build());
+    }
+
+    @Test
+    @DisplayName("findById returns the order, or empty — it never returns null")
+    void findByIdIsOptional() {
+        assertThat(book.findById(OrderId.of(10248))).isPresent();
+        assertThat(book.findById(OrderId.of(99999))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("getById throws a domain exception carrying the id")
+    void getByIdThrowsWithTheId() {
+        assertThat(book.getById(OrderId.of(10248)).customerId()).isEqualTo(CustomerId.of("VINET"));
+        assertThatThrownBy(() -> book.getById(OrderId.of(99999)))
+                .isInstanceOf(OrderNotFoundException.class)
+                .extracting(e -> ((OrderNotFoundException) e).orderId())
+                .isEqualTo(OrderId.of(99999));
+    }
+
+    @Test
+    @DisplayName("the same order cannot be added twice")
+    void duplicatesAreRejected() {
+        assertThatThrownBy(() -> book.add(OrderBuilder.anOrder()
+                .withId(10248).forCustomer("VINET")
+                .withLine(11, "1.00", 1)
+                .build()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(book.size()).isEqualTo(4);
+    }
+
+    @Test
+    @DisplayName("findByCustomer answers the question Customer refused to store")
+    void findByCustomerReturnsOnlyThatCustomer() {
+        assertThat(book.findByCustomer(CustomerId.of("VINET")))
+                .extracting(Order::orderId)
+                .containsExactly(OrderId.of(10248), OrderId.of(10249));
+        assertThat(book.findByCustomer(CustomerId.of("ALFKI"))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("the returned collections are immutable")
+    void returnedCollectionsAreImmutable() {
+        assertThat(book.findByCustomer(CustomerId.of("VINET"))).isUnmodifiable();
+        assertThat(book.findByStatus(OrderStatus.DRAFT)).isUnmodifiable();
+    }
+
+    @Test
+    @DisplayName("countByStatus omits statuses that do not occur")
+    void countByStatusOmitsMissingKeys() {
+        assertThat(book.countByStatus())
+                .containsEntry(OrderStatus.SHIPPED, 1L)
+                .containsEntry(OrderStatus.CONFIRMED, 1L)
+                .containsEntry(OrderStatus.CANCELLED, 1L)
+                .containsEntry(OrderStatus.DRAFT, 1L);
+        OrderBook empty = new OrderBook();
+
+        assertThat(empty.countByStatus()).doesNotContainKey(OrderStatus.SHIPPED);
+        assertThat(empty.countByStatus().getOrDefault(OrderStatus.SHIPPED, 0L)).isZero();
+    }
+
+    @Test
+    @DisplayName("cancelled orders earn nothing")
+    void revenueIgnoresCancelledOrders() {
+        assertThat(book.revenueByCustomer())
+                .containsEntry(CustomerId.of("VINET"), Money.tl("170.00"))
+                .containsEntry(CustomerId.of("TOMSP"), Money.tl("80.00"));
+        assertThat(book.totalRevenue()).isEqualTo(Money.tl("250.00"));
+    }
+
+    @Test
+    @DisplayName("topCustomers ranks by revenue, highest first")
+    void topCustomersAreRanked() {
+        assertThat(book.topCustomers(1)).containsExactly(CustomerId.of("VINET"));
+        assertThat(book.topCustomers(5)).containsExactly(CustomerId.of("VINET"), CustomerId.of("TOMSP"));
+    }
+
+    @Test
+    @DisplayName("partitioningBy always produces both keys, even when one side is empty")
+    void partitioningAlwaysHasBothKeys() {
+        assertThat(book.partitionByShipped().get(true)).hasSize(1);
+        assertThat(book.partitionByShipped().get(false)).hasSize(3);
+
+        OrderBook empty = new OrderBook();
+        assertThat(empty.partitionByShipped()).containsOnlyKeys(true, false);
+        assertThat(empty.partitionByShipped().get(true)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("an empty book has zero revenue, not a missing one")
+    void emptyBookHasZeroRevenue() {
+        assertThat(new OrderBook().totalRevenue()).isEqualTo(Money.tl("0"));
+    }
+}
+```
+
+Builder sınıfımız ile ilgili birkaç noktayı vurgulayalım.
+
+- Senaryomuzda kullandığımız builder sınıfı aggregate kurallarını atlamaz. Örneğin doğrudan bir sipariş durumu güncellemez. Bunun yerine `confirm()`, `ship()` veya `cancel()` gibi aggregate tarafından sağlanan metotları kullanır. Bu bir nevi garanti de sayılabilir. Örneğin sipariş kalemi olmayan bir siparişi confirm etmeye çalışmak istisna fırlatır. Bunu bir kusur değil istediğimiz bir özellik olarak düşünemliyiz. Eğer bu şekilde düşünmezsek testlerimiz aslında gerçek hayatta üretilmeyecek nesneler için yeşil bayrak kaldırır.
+- Builder nesneleri her sınıf için gerekmez. Örneğin Address bileşenimizin zorunlu dört parametresi bulunuyor. Onun için bir builder kullanmak büyük ihtimalle satır sayısını artırır. Dolayısıyla isteğe bağlı parametre sayısı arttığında ve aynı nesnenin birden fazla varyasyonu gerektiğinde builder kullanmak daha anlamlıdır.
+
+Buraya kadar anlattıklarımızda new yapıcı metodu, statik fabrika metodu, factory ve builder desenlerini ele aldık. Her birinin kullanım senaryoları ve avantajları farklıdır. Karar verme noktasında aşağıdaki tablodan yararlanabiliriz.
+
+| **Enstrüman** | **Ne zaman kullanılır** | **Örnek** |
+| --- | --- | --- |
+| **Constructor (new)** | Az sayıda ve tamamı zorunlu parametreye sahip olduğunda ya da nesne oluşturma başka hiçbir şeye bağımlı olmadığında | `new Address()` , `new Order()` gibi |
+| **Static Factory Method** | Nesne oluşturma sürecinde daha fazla kontrol gerektiğinde veya anlamlı isimlendirme yapmak istediğimizde | `CustomerId.of(...)`, `Money.tl(...)` gibi |
+| **Factory** | Nesne oluşturma çeşitli bağımlılıklar gerektirdiğinde | `OrderFactory.draftFor(...)` gibi |
+| **Builder** | Çok sayıda isteğe bağlı parametre olduğunda ya da aynı nesnenin farklı varyasyonlarını oluşturmak istediğimizde | `OrderBuilder.anOrder()...build()` gibi |
+
+Bununla birlikte dikkat edilmesi gereken bazı durumlar vardır ve bunlar anti-pattern olarak değerlendirilebilir.
+
+- OrderFactory sınıfı sipariş depolamaya başladığın anda aslında bir repository olur ve iki sorumluluk birden taşımaya başlar. Bu durum, SRP (Single Responsibility Principle) ihlali olarak değerlendirilir.
+- Test tarafında kullandığımız builder sınıfı içerisinde reflection teknikleri kullanmaya kalktığımızda aggregate kuralarını atlayan test verileri oluşturabiliriz ve bu durum testlerin gerçek hayatta karşılaşılmayacak senaryoları yeşil bayrakla geçmesine neden olur.
+- Sadece iki zorunlu parametresi olan bir sınıf için builder yazmak okuma ve bakım açısından gereksiz olabilir. Bu durumda doğrudan constructor veya static factory method kullanmak daha uygun olabilir.
+- Bazen birçok yerde kullandığımız ortak fonksiyonları nereye koyacağımızı bilemez ve utility isimli bir paket açıp içerisine koyarız. Bu çok iyi bir pratik değildir ve buradaki örnekleri düşünürsek statik fabrika metotlarını utility sınıflarında toplamamalıyız. Nesne oluşturma işi çoğu zaman nesnenin kendi sorumluluğudur.
+
 ---
 
 ## Bu bölümün kodu
@@ -621,4 +895,5 @@ Kodda değerlendirdiğimiz Clock tipi gerçekten bir bağımlılıktır. `LocalD
 cd src
 mvn -pl week07-object-creation -am test
 mvn -pl week07-step2-factory -am test
+mvn -pl week07-step3-builder -am test
 ```
