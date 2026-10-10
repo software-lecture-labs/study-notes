@@ -514,7 +514,102 @@ Tabii dikkat edilmesi gereken birkaç durum da söz konusu. Statik fabrika metot
 
 ## Factory Metotlarını Kullanmak
 
-// EKLENECEK
+Bazı durumlarda nesne oluşturmak için farklı bileşenlere bağımlılık gerekebilir. Örneğin bir sipariş oluşturmak istediğimizi düşünelim. new operatörü yardımıyla Order nesnesinin bir örneğini oluştururuz. Ancak veritabanı seviyesinde baktığımızda bir sipariş oluşturulduğunda örneğin OrderId değeri otomatik olarak artan şekilde üretilir. Hatta sipariş tarihi bilgisi günün tarihi olarak atanır *(LocalDate.now())* ama bu şekilde test metotları patlayabilir. Bir iş kuralı olarak da varsayılan teslimat adresi mevzusunu işin içerisine katabiliriz. Müşterinin adresi siparişin varsayılan teslimat adresi olarak atanabilir ama şu anki tasarımımızı düşündüğümüzde Order'ın Customer'ı tanımadığını da biliyoruz. Sadece CustomerId ile kurulan bir ilişki söz konusu. Dolayısıyla Order nesnesi örneklenirken gerekli varsayılan adres bilgisi yok. Tüm bunları bir araya getirdiğimizde bir Order nesnesnin oluşturulması sırasında bağımlı olduğu başka nesneler gerekiyor. Herbiri kendi sorumluluğuna sahip olan nesneler.
+
+İlk olarak OrderId üretimini ele alalım. Her ne kadar veritabanı seviyesinde otomatik artan bir değer olarak görülsede kod tarafında böyle bir bağımlılık inşa etmemiz doğru olmaz. İşte bir sözleşme *(contract)* ile karşılaşacağımız ilk yer. OrderId üretme davranışını bir interface olarak tanımlayıp bu interface'i implemente eden farklı sınıflar aracılığıyla OrderId üretimini soyutlayabiliriz. Bu sayede test ortamında sabit veya sahte OrderId üretebilen bir implementasyon kullanabilirken, üretim ortamında veritabanına bağımlı gerçek bir implementasyonu tercih edebiliriz. Buna göre aşağıdaki arayüz türünü tanımlayarak devam edelim.
+
+```java
+package com.lectures.business.design.domain;
+
+@FunctionalInterface
+public interface OrderIdGenerator {
+    OrderId next();
+}
+```
+
+Bu interface `@FunctionalInterface` anotasyonu ile işaretlendi. Buna göre yalnızca tek bir soyut metot *(abstract method)* içerebilir ve bunun garanti altına alınmasını sağlar. Java 8 ile gelen bu anotasyon aslında fonksiyonel programlamayı ve lambda ifadelerini desteklemek amacıyla dile entegre edilmiştir. Şimdi kod tarafında bu sınıfı implemente eden gerçek bir sınıf oluşturalım.
+
+```java
+package com.lectures.business.design.domain;
+
+import java.util.concurrent.atomic.AtomicInteger;
+
+public final class SequentialOrderIdGenerator implements OrderIdGenerator {
+
+    private final AtomicInteger counter;
+
+    public SequentialOrderIdGenerator(int startingAt) {
+        if (startingAt <= 0) {
+            throw new IllegalArgumentException("startingAt must be positive: " + startingAt);
+        }
+        this.counter = new AtomicInteger(startingAt);
+    }
+
+    @Override
+    public OrderId next() {
+        return OrderId.of(counter.getAndIncrement());
+    }
+}
+```
+
+Bu sınıf aslında in-memory çalışan bir OrderId üreticisidir. Yani uygulama çalıştığı sürece artan bir sayaç üzerinden OrderId üretir ve uygulama kapandığında bu sayaç sıfırlanır. Bu tür bir implementasyon özellikle test senaryolarında veya veritabanına bağımlı olmayan geçici çözümlerde oldukça kullanışlıdır.
+
+> Ekstra bilgi: Id artırma gibi operasyonlar çok kullanıcı ortamlarda dikkatlice ele alınmalıdır. Eş zamanlı olarak gelen bir çok talep olduğu düşünüldüğünde aynı Id değerinin üretimi söz konusu olabilir. Bu örnekte yer alan in-memory implementasyon da AtomicInteger tipi bu yüzden ele alınmıştır. Klasik bir int değerini artırmak üç ayrı adımdan oluşur; değerin bellekten okunması, 1 artırılması ve tekrardan belleğe yazılması. Multi-thread ortamlarda değerler üstüste yazabileceğinden thread senkronizasyonu yapılması gerekir (synchronized kullanımı). Ancak bunun da bir maliyeti vardır. AtomicInteger türü bu sorunu CPU seviyesinde CAS(compare-and-swap) operasyonu ile kilitleme yapmadan(none-blocking) çözer. Birçok dil buna benzer atomik tipler için destek sunar.
+
+Bu hazırlıklar sonrasında aslında bir sipariş nesnesi üretmek için kullanabileceğimiz asıl fabrika sınıfını aşağıdaki gibi tasarlayabiliriz.
+
+```java
+package com.lectures.business.design.domain;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.util.Objects;
+
+public final class OrderFactory {
+
+    private final OrderIdGenerator idGenerator;
+    private final Clock clock;
+
+    public OrderFactory(OrderIdGenerator idGenerator, Clock clock) {
+        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator must not be null");
+        this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    }
+
+    public Order draftFor(Customer customer) {
+        Objects.requireNonNull(customer, "customer must not be null");
+        return draftFor(customer, customer.address());
+    }
+
+    public Order draftFor(Customer customer, Address destination) {
+        Objects.requireNonNull(customer, "customer must not be null");
+        Objects.requireNonNull(destination, "destination must not be null");
+        Order order = new Order(idGenerator.next(), customer.customerId(), LocalDate.now(clock));
+        order.shipTo(destination);
+        return order;
+    }
+}
+```
+
+OrderFactory aslında bir domain hizmeti sunar *(bu nedenle Domain Service olarak da ifade edebiliriz)* bir aggregate değildir. Kendisine ait hiçbir state tutmaz ve bu senaryoda bir nesne üretimi için iki aggregate kullanır. Bu yaklaşım, domain mantığını aggregate'lar arasında dağıtmadan, nesne yaratma sorumluluğunu merkezi bir noktada toplamanın güzel bir örneğidir.
+
+Dikkat edileceği üzere OrderId üretimi, zaman bilgisinin sorun çıkarmayacak şekilde oluşturulması ve varsayılan müşteri adresi bilgisi kullanımı gibi detaylar Order nesne üretimi için bu fabrika sınıfında ele alınır. Birde nasıl kullanabileceğimize bakalım.
+
+```java
+public static void main(String[] args) {
+    OrderFactory orderFactory = new OrderFactory(new SequentialOrderIdGenerator(1), Clock.systemDefaultZone());
+    Customer customer = new Customer(new CustomerId("ALFKI"), "Contoso Inc", new Address("Main Contoso St", "45001", "New York", "USA"));
+    Order order = orderFactory.draftFor(customer);
+    order.addLine(10001, Money.tl("9.40"), 10, BigDecimal.valueOf(0.1));
+    order.addLine(10002, Money.tl("19.50"), 5, BigDecimal.valueOf(0.2));
+    order.addLine(10003, Money.tl("5.00"), 20, BigDecimal.ZERO);
+
+    System.out.println(order.total());
+}
+```
+
+Daha önceden Order sınıfını tasarlarken Customer sınıfını referans olarak koymamıştık. Bu biraz kafa karıştırıcı olabilir ama OrderFactory'nin Customer nesnesini alması, Order nesnesinin yaratılmasında Customer bilgisinin gerekli olmasının bir sonucudur. Bu sayede Order nesnesi yaratılırken müşteri bilgisi eksik olamaz ve domain mantığı daha tutarlı bir şekilde uygulanır. Şunu unutmayalım ki; parametrele geçici alanlar ise kalıcıdır. Aggregate sınırları nesne grafiklerinde kalıcı bağlar kurmayı yasaklar ama bir metodun iki aggregate'i aynı anda okuması mümkündür ve bu, domain mantığını ihlal etmez.
+
+Kodda değerlendirdiğimiz Clock tipi gerçekten bir bağımlılıktır. `LocalDate.now()` yazdığımızda bu tip kullanım içeren testler de o günkü tarihi ele alıp çalışır, bu da testlerin deterministik olmasını zorlaştırır. `Clock.fixed()` kullanarak sabit bir tarih belirleyebilir ve testlerin her zaman aynı sonucu vermesini sağlayabiliriz *(İlerleyen bölümlerde bu bağımlılığı `@Inject` anotasyonu ile nasıl sağlayabileceğimizi göreceğiz)*.
 
 ---
 
@@ -525,4 +620,5 @@ Tabii dikkat edilmesi gereken birkaç durum da söz konusu. Statik fabrika metot
 ```powershell
 cd src
 mvn -pl week07-object-creation -am test
+mvn -pl week07-step2-factory -am test
 ```
