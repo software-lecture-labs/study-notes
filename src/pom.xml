@@ -31,6 +31,7 @@
         <module>week04-aggregate-and-state-machine</module>
         <module>week05-optional-and-stream</module>
         <module>week07-object-creation</module>
+        <module>week07-step2-factory</module>
     </modules>
 
     <dependencies>
