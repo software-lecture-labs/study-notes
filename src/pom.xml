@@ -32,6 +32,7 @@
         <module>week05-optional-and-stream</module>
         <module>week07-object-creation</module>
         <module>week07-step2-factory</module>
+        <module>week07-step3-builder</module>
     </modules>
 
     <dependencies>
