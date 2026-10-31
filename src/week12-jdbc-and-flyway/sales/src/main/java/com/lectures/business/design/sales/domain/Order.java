@@ -29,6 +29,20 @@ public final class Order {
         this.orderDate = Objects.requireNonNull(orderDate, "orderDate must not be null");
     }
 
+    public static Order reconstitute(OrderId orderId, CustomerId customerId, LocalDate orderDate,
+            OrderStatus status, Address shippingAddress, LocalDate shippedDate, List<OrderLine> lines) {
+        Order order = new Order(orderId, customerId, orderDate);
+        order.status = Objects.requireNonNull(status, "status must not be null");
+        order.shippingAddress = shippingAddress;
+        order.shippedDate = shippedDate;
+        order.lines.addAll(Objects.requireNonNull(lines, "lines must not be null"));
+        if ((status == OrderStatus.SHIPPED) != (shippedDate != null)) {
+            throw new IllegalStateException(
+                    "stored order " + orderId + " is corrupt: status " + status + ", shipped " + shippedDate);
+        }
+        return order;
+    }
+
     public void addLine(int productId, Money unitPrice, int quantity, BigDecimal discount) {
         requireModifiable("add a line");
         int existing = indexOfProduct(productId);
