@@ -1,6 +1,10 @@
 package com.lectures.business.design.arch;
 
+import com.lectures.business.design.sales.domain.CustomerId;
 import com.lectures.business.design.sales.domain.Order;
+import com.lectures.business.design.sales.domain.OrderId;
+import com.lectures.business.design.sales.domain.OrderStatus;
+import com.lectures.business.design.shared.kernel.Address;
 import com.lectures.business.design.shared.kernel.DomainEvent;
 import com.lectures.business.design.shared.kernel.DomainException;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -16,6 +20,7 @@ import static com.tngtech.archunit.library.GeneralCodingRules.NO_CLASSES_SHOULD_
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @AnalyzeClasses(
         packages = {"com.lectures.business.design.sales", "com.lectures.business.design.shared"},
@@ -112,4 +117,22 @@ class ArchitectureTest {
     static final ArchRule only_application_pulls_events = noClasses()
             .that().resideOutsideOfPackage("..sales.application..")
             .should().callMethod(Order.class, "pullEvents");
+
+    //  ADR-0008 Persistence boundary
+    @ArchTest
+    static final ArchRule only_persistence_touches_jdbc = noClasses()
+            .that().resideOutsideOfPackage("..sales.persistence..")
+            .should().dependOnClassesThat().resideInAnyPackage("java.sql..", "javax.sql..");
+
+    @ArchTest
+    static final ArchRule only_persistence_reconstitutes = noClasses()
+            .that().resideOutsideOfPackage("..sales.persistence..")
+            .should().callMethod(Order.class, "reconstitute", OrderId.class, CustomerId.class,
+                    LocalDate.class, OrderStatus.class, Address.class, LocalDate.class, List.class);
+
+    @ArchTest
+    static final ArchRule repository_contracts_hide_sql_exceptions = noMethods()
+            .that().areDeclaredInClassesThat().resideInAPackage("..sales.persistence..")
+            .and().arePublic()
+            .should().declareThrowableOfType(java.sql.SQLException.class);
 }
