@@ -23,6 +23,7 @@ import com.lectures.business.design.shared.kernel.Address;
 import com.lectures.business.design.shared.kernel.DomainException;
 import com.lectures.business.design.shared.kernel.Money;
 import java.util.List;
+import javax.sql.DataSource;
 
 public final class BusinessDesign {
 
@@ -48,7 +49,9 @@ public final class BusinessDesign {
     private static void runSalesScenario() {
         System.out.println("=== Sales scenario ===");
 
-        SalesModule module = SalesModule.inMemory(CLOCK, 10248, new ConsoleCustomerNotifier());
+        DataSource dataSource = Database.migrated(Database.fromEnvironment(System.getenv()));
+        SalesModule module = SalesModule.jdbc(dataSource, CLOCK, new ConsoleCustomerNotifier());
+
         module.customers().save(new Customer(CustomerId.of("VINET"), "Vins et alcools Chevalier",
                 new Address("59 rue de l'Abbaye", "Reims", "51100", "France")));
         module.customers().save(new Customer(CustomerId.of("TOMSP"), "Toms Spezialitaten",
