@@ -1,0 +1,22 @@
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: java-study-notes-postgres
+    environment:
+      POSTGRES_USER: johndoe
+      POSTGRES_PASSWORD: somew0rds
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - java-study-notes-network
+
+volumes:
+  postgres_data:
+
+networks:
+  java-study-notes-network:
+    driver: bridge
