@@ -3,7 +3,7 @@
 # Bölüm 11: Domain Events ve Observer Deseni
 
 <!-- nav:top:start -->
-[← Bölüm 10](java-chapter-10.md#top) · [İçindekiler](README.md#top)
+[← Bölüm 10](java-chapter-10.md#top) · [İçindekiler](README.md#top) · [→ Bölüm 12](java-chapter-12.md#top)
 <!-- nav:top:end -->
 
 Bir önceki bölümde yazma yönündeki kullanım senaryolarını **OrderService** sınıfına taşıdık ve tüm bağımlılıkları **SalesModule** adındaki composition root nesnesi üzerinden bağladık. İş biriminden yeni bir talep geldiğini düşünelim; *"Sipariş kargoya verildiğinde müşteriye bir bildirim gitsin."* Bunu yapmanın en hızlı ve kolay yolu `OrderService.ship` metoduna bir satır eklemek olabilir. Fakat sonrasında *"kargolanan siparişler için stok düşülsün"*, ardından *"iptal edilen siparişler muhasebeye bildirilsin"* gibi taleplerin de geldiğini düşünelim. Bu talepleri de **OrderService** sınıfında karşılarsak onu biraz daha büyütür ve servisin zamanla sistemdeki her şeyi bilen bir sınıfa haline gelmesine neden oluruz. İşte bu bölümde cevaplarını arayacağımız sorular;
@@ -638,5 +638,5 @@ mvn -pl quality/architecture-tests -am test
 
 | ← Önceki Bölüm | İçindekiler | Sonraki Bölüm → |
 | :--- | :---: | ---: |
-| [Bölüm 10: Uygulama Servisleri ve Manuel Dependency Injection](java-chapter-10.md#top) | [Ders Notları](README.md#top) | |
+| [Bölüm 10: Uygulama Servisleri ve Manuel Dependency Injection](java-chapter-10.md#top) | [Ders Notları](README.md#top) | [Bölüm 12: Persistence Boundary, JDBC ve Flayway](java-chapter-12.md#top) |
 <!-- nav:bottom:end -->
