@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lectures</groupId>
+        <artifactId>study-notes-snapshots</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>week12-jdbc-and-flyway</artifactId>
+    <packaging>pom</packaging>
+    <name>Week 12 - Persistence Boundary with JDBC and Flyway</name>
+    <description>
+        The repository contracts get a JDBC implementation backed by Flyway
+        migrations. One contract test suite runs against every
+        implementation: in-memory, H2 and - when Docker is available -
+        a real PostgreSQL.
+    </description>
+
+    <properties>
+        <archunit.version>1.5.1</archunit.version>
+        <jar.plugin.version>3.4.2</jar.plugin.version>
+    </properties>
+
+    <modules>
+        <module>shared-kernel</module>
+        <module>sales</module>
+        <module>app</module>
+        <module>quality/architecture-tests</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.lectures</groupId>
+                <artifactId>week12-shared-kernel</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lectures</groupId>
+                <artifactId>week12-sales</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.lectures</groupId>
+                <artifactId>week12-sales</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit6</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${jar.plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

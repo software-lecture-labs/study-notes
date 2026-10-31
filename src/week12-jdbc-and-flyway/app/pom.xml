@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lectures</groupId>
+        <artifactId>week12-jdbc-and-flyway</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>week12-app</artifactId>
+    <packaging>jar</packaging>
+    <name>Week 12 / app</name>
+    <description>
+        Entry point and the anemic counter-examples. An application module may
+        print to the console; that is why it stays out of the ArchUnit scope.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.lectures</groupId>
+            <artifactId>week12-sales</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.lectures</groupId>
+            <artifactId>week12-shared-kernel</artifactId>
+        </dependency>
+
+        <!-- OrderBuilder lives in the sales module's test sources -->
+        <dependency>
+            <groupId>com.lectures</groupId>
+            <artifactId>week12-sales</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.lectures</groupId>
+        <artifactId>week12-jdbc-and-flyway</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>week12-shared-kernel</artifactId>
+    <packaging>jar</packaging>
+    <name>Week 12 / shared-kernel</name>
+    <description>
+        Generic value objects and contracts. Depends on no business module;
+        the dependency direction here is one-way, forever.
+    </description>
+</project>

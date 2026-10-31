@@ -40,6 +40,7 @@
         <module>week09-maven-modules-and-archunit</module>
         <module>week10-application-services-and-di</module>
         <module>week11-domain-events</module>
+        <module>week12-jdbc-and-flyway</module>
     </modules>
 
     <dependencies>
