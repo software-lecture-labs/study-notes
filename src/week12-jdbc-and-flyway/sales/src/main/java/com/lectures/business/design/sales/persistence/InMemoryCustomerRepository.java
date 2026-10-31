@@ -14,11 +14,17 @@ public final class InMemoryCustomerRepository implements CustomerRepository {
     @Override
     public void save(Customer customer) {
         Objects.requireNonNull(customer, "customer must not be null");
-        customers.put(customer.customerId(), customer);
+        customers.put(customer.customerId(), copyOf(customer));
     }
 
     @Override
     public Optional<Customer> findById(CustomerId customerId) {
-        return Optional.ofNullable(customers.get(customerId));
+        return Optional.ofNullable(customers.get(customerId)).map(InMemoryCustomerRepository::copyOf);
+    }
+
+    private static Customer copyOf(Customer customer) {
+        Customer copy = new Customer(customer.customerId(), customer.companyName(), customer.address());
+        customer.contactName().ifPresent(copy::assignContact);
+        return copy;
     }
 }
